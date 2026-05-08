@@ -1,0 +1,8 @@
+
+__pycache__
+*.egg-info
+
+# Python virtual environments
+.venv
+env
+venv

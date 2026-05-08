@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "snipp"
+dynamic = ["version"]
+
+requires-python = ">=3.10"
+dependencies = [
+    "rich==15.0.0",
+    "tomlkit==0.14.0"
+]
+
+[project.scripts]
+snipp = "snipp.main:run"
+
+[tool.hatch.version]
+path = "src/snipp/__init__.py"
