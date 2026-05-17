@@ -83,6 +83,16 @@ def init_parser() -> ArgumentParser:
     # show.add_argument("--toml", action="store_true",)
     show.set_defaults(func=commands.show)
     
+    delete = cmds.add_parser(
+        name="delete",
+        help="delete a snippet",
+        description="Delete a saved snippet."
+    )
+    
+    delete.add_argument("id", type=str, help="the snippet's id")
+    
+    delete.set_defaults(func=commands.delete)
+    
     return parser
 
 def main() -> int:
