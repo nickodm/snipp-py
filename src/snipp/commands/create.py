@@ -3,6 +3,11 @@ from pathlib import Path
 from ..core import *
 
 def read_description(path: Path) -> str:
+    """read the description from a file.
+
+    :param Path path: The file's path.
+    :return str: The read description.
+    """
     if not path.exists():
         printerr("Error: The description file doesn't exists.")
         exit(1)
@@ -12,10 +17,10 @@ def read_description(path: Path) -> str:
         exit(1)
     
     try:
-        with path.open() as fp:
+        with path.open(encoding="utf-8") as fp:
             return fp.read()
     except UnicodeDecodeError:
-        printerr("Error: The file is a binary.")
+        printerr("Error: The description file is a binary.")
         exit(1)
 
 def main(path: Path, name: str, description: str, git: bool, to: Path | None,
@@ -25,6 +30,10 @@ def main(path: Path, name: str, description: str, git: bool, to: Path | None,
     
     snippet = Snippet.create(path, name, description, git)
     print(f"Created snippet \"{snippet.name}\".")
-    with console.status("Saving..."):
-        snippet.save()
+    
+    msg = "Saving..." if to is None else f"Saving to \"{to}\"..."
+    with console.status(msg):
+        saved = snippet.save(to)
+
+    print(f"Saved to \"{saved}\".")
     return 0

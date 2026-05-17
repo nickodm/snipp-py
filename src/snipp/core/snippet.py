@@ -2,22 +2,36 @@ from pathlib import Path
 from zipfile import ZipFile
 from uuid import uuid4
 from datetime import datetime
+import re
 import tomlkit as t
 import os
 
 from .paths import SNIPPETS
 
+def validate_name(name: str) -> bool:
+    """Validate a Snippet's name.
+
+    :param str name: The name to validate.
+    :return bool: Whether the snippet is valid or not.
+    """
+    return re.match(r"^[\w_]+$", name) is not None
+
 # TODO: Validate with regex
 def sanitize_name(name: str) -> str:
+    if not validate_name(name):
+        raise ValueError(f"\"{name}\" is not a valid name.")
+    
     replace_pairs = {
         " ": "_",
         "ñ": "n",
         "+": ""
     }
     
-    return name.lower() \
-               .replace(" ", "_") \
-               .replace("ñ", "n")
+    name = name.lower()
+    for old, new in replace_pairs.items():
+        name = name.replace(old, new)
+    
+    return name
 
 class Metadata:
     """
@@ -133,8 +147,6 @@ class Snippet:
         self.origin = origin
         self.metadata = Metadata(name, description, git_init)
         self._assign_path()
-        
-        # self.save()
         return self
     
     @classmethod
@@ -163,20 +175,22 @@ class Snippet:
         
         self.path = new_path
 
-    def save(self, to: Path | None = None) -> None:
+    def save(self, to: Path | None = None) -> Path:
         """Save the snippet to the directory.
 
-        :param Path | None to: _description_, defaults to None
+        :param Path | None to: The path to save the , defaults to None
         """
-        
         if to is None:
             to = self.path
         
-        if not self.origin:
-            return None
+        if to.is_dir():
+            to = to.joinpath(self.metadata.sanitized_name() + ".zip")
         
         with ZipFile(to, "w") as zf:
             zf.writestr(Metadata.FILENAME, self.metadata.as_toml())
+            
+            if not self.origin:
+                return
 
             for item, _, files in os.walk(self.origin):
                 item = Path(item)
@@ -184,7 +198,7 @@ class Snippet:
                     file_path: Path = item / file
                     zf.write(file_path, Path("contents") / file_path.relative_to(self.origin))
         
-        return None
+        return to
     
     def open(self, mode: str = "r") -> ZipFile:
         return ZipFile(self.path, mode)
@@ -220,8 +234,6 @@ class Snippet:
         
         with ZipFile(self.path) as z:
             z.extractall(path, ["contents"])
-        
-        os.remove(path / Metadata.FILENAME)
 
     def _assign_path(self) -> None:
         """
