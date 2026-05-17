@@ -11,7 +11,10 @@ def load_snippets():
         return
     
     for entry in SNIPPETS.iterdir():
-        yield Snippet.load(entry)
+        loaded = Snippet.load(entry)
+
+        if loaded is not None:
+            yield loaded
 
 def find_by_id(id: str) -> Snippet | None:
     """Find and load a snippet by its ID.
@@ -30,6 +33,9 @@ def find_by_id(id: str) -> Snippet | None:
             continue
         
         temp = Snippet.load(file)
+        
+        if temp is None:
+            return None
         
         if temp.uuid.startswith(id):
             return temp

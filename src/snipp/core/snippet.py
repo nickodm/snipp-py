@@ -1,5 +1,5 @@
 from pathlib import Path, PurePath
-from zipfile import ZipFile
+from zipfile import ZipFile, is_zipfile
 from uuid import uuid4
 from datetime import datetime
 from tempfile import TemporaryDirectory
@@ -167,11 +167,14 @@ class Snippet:
         :param Path path: The path where the built snippet is.
         :return Snippet | None: The loaded snippet.
         """
+        if not cls._is_valid(path):
+            return None
+        
         self: Snippet = cls.__new__(cls)
         self.path = path
         self.origin = None
         
-        with ZipFile(path) as zf:
+        with self.open() as zf:
             self.metadata = Metadata.extract(zf)
         
         return self
@@ -280,6 +283,29 @@ class Snippet:
         Assign a path in the snippets directory based on the sanitized name.
         """
         return SNIPPETS.joinpath(self.metadata.sanitized_name() + ".zip")
+        
+    @staticmethod
+    def _is_valid(path: Path) -> bool:
+        """Whether the file at `path` is a valid snippet or not.
+
+        :param Path path: The path of the supposed snippet.
+        :return bool: Whether the file is a valid snippet.
+        """
+        if not path.exists():
+            return False
+        
+        if not is_zipfile(path):
+            return False
+        
+        namelist: list[str] = []
+        
+        with ZipFile(path) as zf:
+            namelist = zf.namelist()
+        
+        if not Metadata.FILENAME in namelist:
+            return False
+        
+        return True
         
     def __repr__(self) -> str:
         return f"Snippet(name={self.name}, path={self.path})"
