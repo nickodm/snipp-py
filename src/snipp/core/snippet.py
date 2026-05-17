@@ -111,8 +111,6 @@ class Snippet:
         self.metadata: Metadata = None
         self.path: Path = None
         """The path where the zipped snippet is saved."""
-        self.origin: Path | None = None
-        """The origin of the Snippet."""
     
     @property
     def name(self) -> str:
@@ -136,25 +134,37 @@ class Snippet:
     
     @classmethod
     def create(cls, origin: Path, name: str = "", description: str = "",
-               git_init: bool = True) -> 'Snippet':
-        """Create a snippet based on the folder at `path`.
+               git_init: bool = True, to: Path | None = None) -> 'Snippet':
+        """Create a snippet.
 
-        :param Path path: _description_
-        :return Snippet: _description_
+        :param Path origin: The path of the directory where the snippet
+        to compress is stored.
+        :param str name: The snippet's name, defaults to an empty string.
+        :param str description: The snippet's description, defaults to ""
+        :param bool git_init: Whether to create a git repository when
+        deploying the snippet, defaults to True
+        :param Path | None to: The path to save the snippet, defaults to
+        the assigned path at the project directory.
+        :return Snippet: The created snippet.
         """
         self: Snippet = cls.__new__(cls)
         
-        self.origin = origin
         self.metadata = Metadata(name, description, git_init)
-        self._assign_path()
+        
+        if to is not None:
+            self.path = to
+        else:
+            self.path = self._assigned_path()
+        
+        self._compress(origin, self.path)
         return self
     
     @classmethod
-    def load(cls, path: Path) -> 'Snippet':
+    def load(cls, path: Path):
         """Load a built snippet from `path`.
 
         :param Path path: The path where the built snippet is.
-        :return Snippet: The loaded snippet.
+        :return Snippet | None: The loaded snippet.
         """
         self: Snippet = cls.__new__(cls)
         self.path = path
@@ -174,31 +184,6 @@ class Snippet:
             self.path.rename(new_path)
         
         self.path = new_path
-
-    def save(self, to: Path | None = None) -> Path:
-        """Save the snippet to the directory.
-
-        :param Path | None to: The path to save the , defaults to None
-        """
-        if to is None:
-            to = self.path
-        
-        if to.is_dir():
-            to = to.joinpath(self.metadata.sanitized_name() + ".zip")
-        
-        with ZipFile(to, "w") as zf:
-            zf.writestr(Metadata.FILENAME, self.metadata.as_toml())
-            
-            if not self.origin:
-                return
-
-            for item, _, files in os.walk(self.origin):
-                item = Path(item)
-                for file in files:
-                    file_path: Path = item / file
-                    zf.write(file_path, Path("contents") / file_path.relative_to(self.origin))
-        
-        return to
     
     def open(self, mode: str = "r") -> ZipFile:
         return ZipFile(self.path, mode)
@@ -238,12 +223,36 @@ class Snippet:
                 
                 with open(destiny, "wb") as fp:
                     fp.write(buffer)
+    
+    def _compress(self, origin: Path, to: Path):
+        """Compress a directory with the snippet style.
 
-    def _assign_path(self) -> None:
+        :param Path origin: The directory path.
+        :param Path to: The path where the compressed snippet will be
+        saved.
+        """
+        
+        # {relative: original}
+        buffer: dict[str, Path] = {}
+        for item, _, files in os.walk(origin):
+            item = Path(item)
+            
+            for file in files:
+                file_path: Path = item / file
+                relative = file_path.relative_to(origin).as_posix()
+                buffer[relative] = file_path
+        
+        with ZipFile(to, "w") as zf:
+            zf.writestr(Metadata.FILENAME, self.metadata.as_toml())
+
+            for relative, original in buffer.items():
+                zf.write(original, PurePath("contents") / relative)
+
+    def _assigned_path(self) -> Path:
         """
         Assign a path in the snippets directory based on the sanitized name.
         """
-        self.path = SNIPPETS / (self.metadata.sanitized_name() + ".zip")
+        return SNIPPETS.joinpath(self.metadata.sanitized_name() + ".zip")
         
     def __repr__(self) -> str:
-        return f"Snippet(name={self.name}, path={self.path}, origin={self.origin})"
+        return f"Snippet(name={self.name}, path={self.path})"

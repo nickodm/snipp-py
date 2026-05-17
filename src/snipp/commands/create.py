@@ -28,12 +28,12 @@ def main(path: Path, name: str, description: str, git: bool, to: Path | None,
     if description_file:
         description = read_description(description_file)
     
-    snippet = Snippet.create(path, name, description, git)
-    print(f"Created snippet \"{snippet.name}\".")
-    
-    msg = "Saving..." if to is None else f"Saving to \"{to}\"..."
-    with console.status(msg):
-        saved = snippet.save(to)
+    with console.status("Creating..."):
+        snippet = Snippet.create(path, name, description, git, to)
 
-    print(f"Saved to \"{saved}\".")
+    print(f":white_check_mark: [green]Created snippet \"{snippet.name}\".")
+    
+    if to is not None:
+        print(f"Saved to \"{snippet.path}\".")
+    
     return 0
