@@ -1,4 +1,4 @@
-from pathlib import Path
+from pathlib import Path, PurePath
 from zipfile import ZipFile
 from uuid import uuid4
 from datetime import datetime
@@ -109,7 +109,7 @@ class Metadata:
 class Snippet:
     def __init__(self):
         self.metadata: Metadata = None
-        self.path: Path | None = None
+        self.path: Path = None
         """The path where the zipped snippet is saved."""
         self.origin: Path | None = None
         """The origin of the Snippet."""
@@ -203,14 +203,18 @@ class Snippet:
     def open(self, mode: str = "r") -> ZipFile:
         return ZipFile(self.path, mode)
     
-    def namelist(self) -> list[Path]:
+    def namelist(self) -> list[PurePath]:
+        """List all the contents inside the snippet.
+
+        :return list[PurePath]: The content list.
+        """
         nl: list[str] = []
         with self.open() as zf:
             nl = zf.namelist()
         
-        buffer: list[Path] = []
+        buffer: list[PurePath] = []
         for path in nl:
-            path = Path(path)
+            path = PurePath(path)
             
             if not path.is_relative_to("contents"):
                 continue
@@ -219,21 +223,21 @@ class Snippet:
         
         return buffer
 
-    def extract(self, path: Path | None = None):
+    def extract(self, path: Path) -> None:
         """Extract the snippet to `path`.
 
-        :param Path | None to: _description_, defaults to None
-        :return _type_: _description_
+        :param Path to: The path where the snippet will be extracted.
         """
-        if path is None and self.origin is None:
-            # sofrimento eterno
-            return NotImplemented
-
-        if path is None:
-            path = self.origin
-        
         with ZipFile(self.path) as z:
-            z.extractall(path, ["contents"])
+            for file in self.namelist():
+                destiny: Path = path.joinpath(file)
+                buffer: bytes = z.read("contents/" + file.as_posix())
+                
+                if not destiny.parent.exists():
+                    destiny.parent.mkdir(parents=True)
+                
+                with open(destiny, "wb") as fp:
+                    fp.write(buffer)
 
     def _assign_path(self) -> None:
         """

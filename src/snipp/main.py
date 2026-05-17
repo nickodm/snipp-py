@@ -4,7 +4,7 @@ snipp
 |- create   Create a new snippet.
 |- delete   Delete a snippet.
 |- edit     Edit a snippet.
-|- use      Use a snippet.
+|- deploy   Deploy a snippet.
 |- rename   Rename a snippet.
 |- export   Export a snippet.
 |- import   Import a snippet.
@@ -92,6 +92,27 @@ def init_parser() -> ArgumentParser:
     delete.add_argument("id", type=str, help="the snippet's id")
     
     delete.set_defaults(func=commands.delete)
+    
+    deploy = cmds.add_parser(
+        name="deploy",
+        help="deploy a snippet",
+        description="Deploy a snippet."
+    )
+    
+    exclusive = deploy.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to deploy")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to deploy")
+    
+    deploy.add_argument("-p", "--path", type=path, default=Path.cwd(),
+        help="the path where the snippet will be deployed. Defaults to "
+             "the current working directory.")
+    deploy.add_argument("-f", "--force", action="store_true",
+        help="force the snippet creation")
+    
+    deploy.set_defaults(func=commands.deploy)
     
     return parser
 
