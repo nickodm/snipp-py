@@ -1,15 +1,23 @@
-
-from ..core import *
+"""
+list [--oneline]
+"""
+from ..core import * 
 
 def print_normal():
+    key_format: str = "bold"
     counter = 0
     for snippet in load_snippets():
+        if snippet.creation_date:
+            date = snippet.creation_date.strftime("%Y-%m-%d %H:%H")
+        else:
+            date = None
+        
         console.rule(f"[{counter:0>2}]", align="left")
-        print(f"[bold]NAME          :[/] {snippet.name}")
-        print(f"[bold]ID            :[/] {snippet.uuid}")
-        print(f"[bold]CREATION DATE :[/] {snippet.creation_date}")
-        print(f"[bold]GIT INIT?     :[/] {snippet.git_init}")
-        print(f"[bold]DESCRIPTION   :[/] {snippet.description}")
+        print(f"[{key_format}]NAME          :[/] {snippet.name}")
+        print(f"[{key_format}]ID            :[/] {snippet.uuid}")
+        print(f"[{key_format}]CREATION DATE :[/] {date}")
+        print(f"[{key_format}]GIT INIT?     :[/] {snippet.git_init}")
+        print(f"[{key_format}]DESCRIPTION   :[/] {snippet.description}")
         counter += 1
     
     if counter > 0:
@@ -19,7 +27,7 @@ def print_normal():
 
 def print_oneline():
     for snippet in load_snippets():
-        print(f"[[bold blue]{snippet.uuid[:5]}[/]] {snippet.name}")
+        print(f"[[bold yellow]{snippet.uuid[:5]}[/]] {snippet.name}")
 
 def main(oneline: bool) -> int:
     if oneline:
