@@ -168,6 +168,7 @@ class Snippet:
         """
         self: Snippet = cls.__new__(cls)
         self.path = path
+        self.origin = None
         
         with ZipFile(path) as zf:
             self.metadata = Metadata.extract(zf)
