@@ -2,6 +2,7 @@ from pathlib import Path, PurePath
 from zipfile import ZipFile
 from uuid import uuid4
 from datetime import datetime
+from tempfile import TemporaryDirectory
 import re
 import tomlkit as t
 import os
@@ -176,6 +177,16 @@ class Snippet:
         return self
     
     def rename(self, new_name: str) -> None:
+        """Change the name of the snippet.
+        
+        This will also change the
+        snippet's path and modify it's metadata. To do that, this method
+        will extract the snippet in a temporary folder, apply the
+        changes and then compress it again, so be careful with renaming
+        just because.
+
+        :param str new_name: The new name for the snippet.
+        """
         self.metadata.name = new_name
         
         sanitized: str = self.metadata.sanitized_name()
@@ -185,6 +196,14 @@ class Snippet:
             self.path.rename(new_path)
         
         self.path = new_path
+        
+        with TemporaryDirectory() as temp:
+            with self.open() as zf:
+                zf.extractall(temp)
+            
+            os.remove(self.path)
+            
+            self._compress(temp, self.path, raw=True)
     
     def open(self, mode: str = "r") -> ZipFile:
         return ZipFile(self.path, mode)
@@ -225,12 +244,14 @@ class Snippet:
                 with open(destiny, "wb") as fp:
                     fp.write(buffer)
     
-    def _compress(self, origin: Path, to: Path):
+    def _compress(self, origin: Path, to: Path, *, raw: bool = False):
         """Compress a directory with the snippet style.
 
         :param Path origin: The directory path.
         :param Path to: The path where the compressed snippet will be
         saved.
+        :param bool raw: If true, the directory will be compressed as-is,
+        without the snippet format.
         """
         
         # {relative: original}
@@ -243,11 +264,16 @@ class Snippet:
                 relative = file_path.relative_to(origin).as_posix()
                 buffer[relative] = file_path
         
-        with ZipFile(to, "w") as zf:
-            zf.writestr(Metadata.FILENAME, self.metadata.as_toml())
+        if raw:
+            with ZipFile(to, "w") as zf:
+                for relative, original in buffer.items():
+                    zf.write(original, relative)
+        else:
+            with ZipFile(to, "w") as zf:
+                zf.writestr(Metadata.FILENAME, self.metadata.as_toml())
 
-            for relative, original in buffer.items():
-                zf.write(original, PurePath("contents") / relative)
+                for relative, original in buffer.items():
+                    zf.write(original, PurePath("contents") / relative)
 
     def _assigned_path(self) -> Path:
         """

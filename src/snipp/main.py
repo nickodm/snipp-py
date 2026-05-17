@@ -132,8 +132,25 @@ def init_parser() -> ArgumentParser:
     export.add_argument("-f", "--force", action="store_true",
         help="force the snippet exportation")
     
-    
     export.set_defaults(func=commands.export)
+    
+    rename = cmds.add_parser(
+        name="rename",
+        help="change a snippet's name",
+        description="Change a snippet's name."
+    )
+    
+    exclusive = rename.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to rename")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to rename")
+    
+    rename.add_argument("new_name",
+        help="the new name for the snippet")
+    
+    rename.set_defaults(func=commands.rename)
     
     return parser
 
