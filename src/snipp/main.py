@@ -94,7 +94,12 @@ def init_parser() -> ArgumentParser:
         description="Delete a saved snippet."
     )
     
-    delete.add_argument("id", type=str, help="the snippet's id")
+    exclusive = delete.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to show")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to show")
     
     delete.set_defaults(func=commands.delete)
     

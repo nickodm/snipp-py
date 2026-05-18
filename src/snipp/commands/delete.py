@@ -1,12 +1,13 @@
 from ..core import *
 from os import remove
 
-def main(id: str) -> int:
-    snippet = find_by_id(id)
+def main(name: str | None, id: str | None) -> int:
+    snippet = find_by(name, id)
 
     if snippet is None:
         printerr("Snippet not found.")
         return 1
+    
     try:
         remove(snippet.path)
     except PermissionError:
