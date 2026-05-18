@@ -8,19 +8,19 @@ import tomlkit as t
 import os
 
 from .paths import SNIPPETS
+from .errors import *
 
-def validate_name(name: str) -> bool:
+def validate_name(name: str) -> None:
     """Validate a Snippet's name.
 
     :param str name: The name to validate.
-    :return bool: Whether the snippet is valid or not.
+    :raises InvalidNameError: When the name is not valid.
     """
-    return re.match(r"^[\w_]+$", name) is not None
+    if re.match(r"^[\w_]+$", name) is None:
+        raise InvalidNameError(name)
 
-# TODO: Validate with regex
 def sanitize_name(name: str) -> str:
-    if not validate_name(name):
-        raise ValueError(f"\"{name}\" is not a valid name.")
+    validate_name(name)
     
     replace_pairs = {
         " ": "_",
@@ -166,9 +166,10 @@ class Snippet:
 
         :param Path path: The path where the built snippet is.
         :return Snippet | None: The loaded snippet.
+        :raises InvalidSnippetError: When the snippet is invalid.
         """
         if not cls._is_valid(path):
-            return None
+            raise InvalidSnippetError(path)
         
         self: Snippet = cls.__new__(cls)
         self.path = path

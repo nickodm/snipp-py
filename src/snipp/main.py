@@ -192,6 +192,9 @@ def run() -> int:
     except KeyboardInterrupt:
         printerr("Process killed by user.")
         return 1
+    except SnippError as e:
+        printerr(f"Error: {e}")
+        return e.exit_code
     except Exception:
         err.print_exception()
         return 1

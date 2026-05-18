@@ -27,7 +27,7 @@ def print_normal():
 
 def print_oneline():
     for snippet in load_snippets():
-        print(f"[[bold yellow]{snippet.uuid[:5]}[/]] {snippet.name}")
+        print(f"[[bold yellow]{snippet.uuid[:ID_MIN_LEN]}[/]] {snippet.name}")
 
 def main(oneline: bool) -> int:
     if oneline:

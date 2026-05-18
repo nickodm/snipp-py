@@ -2,8 +2,6 @@ from pathlib import Path
 
 from ..core import *
 
-
-
 def print_tree(snippet: Snippet) -> None:
     last_parent: Path | None = None
     
@@ -29,15 +27,7 @@ def print_tree(snippet: Snippet) -> None:
         
 
 def main(name: str | None, id: str | None, tree: bool) -> int:
-    if len(id) < 5:
-        printerr("Error: The ID is too short.")
-        return 1
-    
     snippet = find_by(name, id)
-
-    if snippet is None:
-        printerr("Snippet not found.")
-        return 1
     
     if snippet.creation_date:
         fdate: str = snippet.creation_date.strftime("%Y-%m-%d %H:%M")

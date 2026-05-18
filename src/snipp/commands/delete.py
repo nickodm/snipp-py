@@ -3,10 +3,6 @@ from os import remove
 
 def main(name: str | None, id: str | None) -> int:
     snippet = find_by(name, id)
-
-    if snippet is None:
-        printerr("Snippet not found.")
-        return 1
     
     try:
         remove(snippet.path)

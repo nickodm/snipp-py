@@ -13,10 +13,6 @@ def main(path: Path, update: bool) -> int:
     
     snippet = Snippet.load(path)
     
-    if snippet is None:
-        printerr("Error: Invalid snippet.")
-        return 1
-    
     if not update and already_stored(snippet):
         printerr("The snippet is already stored "
                  f"(id [blue]{snippet.uuid[:5]}[/blue]).")

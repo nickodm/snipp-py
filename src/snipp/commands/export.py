@@ -5,10 +5,6 @@ from ..core import *
 def main(name: str | None, id: str | None, path: Path, force: bool) -> int:
     snippet = find_by(name, id)
 
-    if snippet is None:
-        printerr("Snippet not found.")
-        return 1
-
     if path.suffix == "" or path.is_dir():
         path = path.joinpath(snippet.metadata.sanitized_name() + ".zip")
 
