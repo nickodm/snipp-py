@@ -50,8 +50,9 @@ class Metadata:
         info.add(t.comment("Whether to init a git repository when using the snippet."))
         info.add("git_init", self.git_init)
         
-        info.add(t.comment("The date when the snippet was created."))
-        info.add("creation_date", self.creation_date)
+        if self.creation_date is not None:
+            info.add(t.comment("The date when the snippet was created."))
+            info.add("creation_date", self.creation_date)
         
         doc.add("snippet-info", info)
         
