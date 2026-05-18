@@ -10,6 +10,8 @@ import os
 from .paths import SNIPPETS
 from .errors import *
 
+from snipp import __version_info__
+
 def validate_name(name: str) -> None:
     """Validate a Snippet's name.
 
@@ -47,6 +49,7 @@ class Metadata:
         self.description: str = description
         self.git_init: bool = git_init
         self.creation_date: datetime | None = datetime.now()
+        self.software_version: tuple[int, int, int] = __version_info__
         
     def sanitized_name(self) -> str:
         return sanitize_name(self.name)
@@ -76,6 +79,14 @@ class Metadata:
         
         doc.add("snippet-info", info)
         
+        software_info = t.table()
+        
+        software_info.add(t.comment("The version of snipp used to create this "
+                                    "snippet."))
+        software_info.add("version", __version_info__)
+        
+        doc.add("software-info", software_info)
+        
         return doc.as_string()
     
     @classmethod
@@ -95,6 +106,11 @@ class Metadata:
         self.description = info.get("description", "")
         self.git_init = info.get("git_init", True)
         self.creation_date = info.get("creation_date", None)
+        
+        software_info: dict = loaded.get("software-info", {})
+        self.software_version = tuple(software_info.get("version", 
+                                                        __version_info__))
+        
         return self
     
     @classmethod
