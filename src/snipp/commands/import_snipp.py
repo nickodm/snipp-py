@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from ..core import *
+from ..core.parser import *
 
 def main(path: Path, update: bool) -> int:
     if not path.exists():
@@ -28,3 +29,20 @@ def main(path: Path, update: bool) -> int:
     
     print(f":white_check_mark: Imported snippet \"{snippet.name}\".")
     return 0
+
+@command_register
+def register(cmds: SubParser) -> None:
+    import_cmd = cmds.add_parser(
+        name="import",
+        help="import a snippet",
+        description="Import a snippet."
+    )
+    
+    import_cmd.register("type", "path", type_path)
+    
+    import_cmd.add_argument("path", type="path",
+        help="the path where the snippet to import is saved")
+    import_cmd.add_argument("-u", "--update", action="store_true",
+        help="if the snippet is already stored, update it")
+    
+    import_cmd.set_defaults(func=main)

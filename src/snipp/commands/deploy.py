@@ -2,6 +2,7 @@ from pathlib import Path
 from subprocess import run
 
 from ..core import *
+from ..core.parser import *
 
 def dir_is_empty(path: Path) -> bool:
     for _ in path.iterdir():
@@ -43,3 +44,28 @@ def main(name: str | None, id: str | None, path: Path, force: bool) -> int:
     
     print(":white_check_mark: [green]Snippet deployed successfully.")
     return 0
+
+@command_register
+def register(cmds: SubParser) -> None:
+    deploy = cmds.add_parser(
+        name="deploy",
+        help="deploy a snippet",
+        description="Deploy a snippet."
+    )
+    
+    deploy.register("type", "path", type_path)
+    
+    exclusive = deploy.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to deploy")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to deploy")
+    
+    deploy.add_argument("-p", "--path", type="path", default=Path.cwd(),
+        help="the path where the snippet will be deployed. Defaults to "
+             "the current working directory.")
+    deploy.add_argument("-f", "--force", action="store_true",
+        help="force the snippet creation")
+    
+    deploy.set_defaults(func=main)

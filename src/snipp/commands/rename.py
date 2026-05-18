@@ -1,4 +1,5 @@
 from ..core import *
+from ..core.parser import *
 
 def main(name: str | None, id: str | None, new_name: str) -> int:
     snippet = find_by(name, id)
@@ -10,3 +11,23 @@ def main(name: str | None, id: str | None, new_name: str) -> int:
     
     print(f"Renamed snippet \"{old_name}\" to \"{snippet.name}\".")
     return 0
+
+@command_register
+def register(cmds: SubParser) -> None:
+    rename = cmds.add_parser(
+        name="rename",
+        help="change a snippet's name",
+        description="Change a snippet's name."
+    )
+    
+    exclusive = rename.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to rename")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to rename")
+    
+    rename.add_argument("new_name",
+        help="the new name for the snippet")
+    
+    rename.set_defaults(func=main)

@@ -1,5 +1,7 @@
-from ..core import *
 from os import remove
+
+from ..core import *
+from ..core.parser import *
 
 def main(name: str | None, id: str | None) -> int:
     snippet = find_by(name, id)
@@ -13,3 +15,20 @@ def main(name: str | None, id: str | None) -> int:
     
     print(f"Removed snippet \"{snippet.name}\".")
     return 0
+
+@command_register
+def register(cmds: SubParser) -> None:
+    delete = cmds.add_parser(
+        name="delete",
+        help="delete a snippet",
+        description="Delete a saved snippet."
+    )
+    
+    exclusive = delete.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to show")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to show")
+    
+    delete.set_defaults(func=main)

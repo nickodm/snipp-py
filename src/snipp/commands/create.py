@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from ..core import *
+from ..core.parser import *
 
 def read_description(path: Path) -> str:
     """read the description from a file.
@@ -37,3 +38,28 @@ def main(path: Path, name: str, description: str, git: bool, to: Path | None,
         print(f"Saved to \"{snippet.path}\".")
     
     return 0
+
+@command_register
+def register(cmds: SubParser) -> None:
+    create = cmds.add_parser(
+        name="create",
+        help="create a snippet from a directory",
+        description="Create a snippet from a directory.")
+    create.add_argument("name", type=str)
+    
+    create.register("type", "path", type_path)
+    
+    exclusive = create.add_mutually_exclusive_group()
+    exclusive.add_argument("-d", "--description", type=str, default='',
+        help="add a description to the snippet")
+    exclusive.add_argument("-D", "--description-file", type="path", dest="description_file",
+        help="read the description from a file", metavar="PATH")
+    
+    create.add_argument("-p", "--path", type="path", default=Path.cwd(),
+        help="the path where the snippet is (defaults to current working directory)")
+    create.add_argument("--no-git", action="store_false", dest="git",
+        help="don't init a git repository when using the use command")
+    create.add_argument("--save-to", type="path", dest="to", metavar="PATH",
+        help="specify a different path to save the snippet")
+    
+    create.set_defaults(func=main)

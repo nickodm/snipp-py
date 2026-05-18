@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from ..core import *
+from ..core.parser import command_register, SubParser
 
 def print_tree(snippet: Snippet) -> None:
     last_parent: Path | None = None
@@ -45,3 +46,24 @@ def main(name: str | None, id: str | None, tree: bool) -> int:
         print_tree(snippet)
     
     return 0
+
+@command_register
+def register(cmds: SubParser) -> None:
+    show = cmds.add_parser(
+        name="show",
+        help="show information about a snippet",
+        description="Show information about a specified snippet."
+    )
+    
+    exclusive = show.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to show")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to show")
+    
+    show.add_argument("--no-tree", action="store_false", dest="tree",
+        help="don't show the snippet's directory tree")
+    
+    # show.add_argument("--toml", action="store_true",)
+    show.set_defaults(func=main)

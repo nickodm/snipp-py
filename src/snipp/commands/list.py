@@ -2,6 +2,7 @@
 list [--oneline]
 """
 from ..core import * 
+from ..core.parser import command_register, SubParser
 
 def print_normal():
     key_format: str = "bold"
@@ -36,3 +37,17 @@ def main(oneline: bool) -> int:
         print_normal()
     
     return 0
+
+@command_register
+def register(cmds: SubParser) -> None:
+    list = cmds.add_parser(
+        name="list",
+        help="list all the saved snippets",
+        description="List all the saved snippets."
+    )
+    list.add_argument(
+        "--oneline",
+        action="store_true",
+        help="list just oneline for each snippet"
+    )
+    list.set_defaults(func=main)
