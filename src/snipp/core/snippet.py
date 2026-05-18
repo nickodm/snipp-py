@@ -155,7 +155,7 @@ class Snippet:
         if to is not None:
             self.path = to
         else:
-            self.path = self._assigned_path()
+            self.path = self.assigned_path()
         
         self._compress(origin, self.path)
         return self
@@ -278,11 +278,11 @@ class Snippet:
                 for relative, original in buffer.items():
                     zf.write(original, PurePath("contents") / relative)
 
-    def _assigned_path(self) -> Path:
+    def assigned_path(self) -> Path:
         """
         Assign a path in the snippets directory based on the sanitized name.
         """
-        return SNIPPETS.joinpath(self.metadata.sanitized_name() + ".zip")
+        return SNIPPETS / (self.metadata.sanitized_name() + ".zip")
         
     @staticmethod
     def _is_valid(path: Path) -> bool:

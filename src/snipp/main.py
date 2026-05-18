@@ -134,6 +134,19 @@ def init_parser() -> ArgumentParser:
     
     export.set_defaults(func=commands.export)
     
+    import_cmd = cmds.add_parser(
+        name="import",
+        help="import a snippet",
+        description="Import a snippet."
+    )
+    
+    import_cmd.add_argument("path", type=path,
+        help="the path where the snippet to import is saved")
+    import_cmd.add_argument("-u", "--update", action="store_true",
+        help="if the snippet is already stored, update it")
+    
+    import_cmd.set_defaults(func=commands.import_snipp)
+    
     rename = cmds.add_parser(
         name="rename",
         help="change a snippet's name",
