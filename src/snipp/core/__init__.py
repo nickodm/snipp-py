@@ -1,11 +1,11 @@
 from rich.console import Console
 
 __all__ = ["console", "print", "err", "printerr", "paths", "Snippet", "load_snippets",
-    "find_by_id", "find_by_name", "already_stored"]
+    "find_by_id", "find_by_name", "find_by", "already_stored"]
 
 from . import paths
 from .snippet import Snippet
-from .loading import load_snippets, find_by_id, find_by_name
+from .loading import load_snippets, find_by_id, find_by_name, find_by
 
 console = Console()
 print = console.print

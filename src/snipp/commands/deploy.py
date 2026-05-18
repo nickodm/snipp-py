@@ -22,16 +22,9 @@ def git_init(path: Path) -> bool:
         return False
 
 def main(name: str | None, id: str | None, path: Path, force: bool) -> int:
-    if name is None and id is None:
-        printerr("Error: You must specify a name or an id.")
-        return 1
+    snippet = find_by(name, id)
     
-    if id:
-        snippet = find_by_id(id)
-    else:
-        snippet = find_by_name(name)
-
-    if not snippet:
+    if snippet is None:
         printerr("Snippet not found.")
         return 1
     

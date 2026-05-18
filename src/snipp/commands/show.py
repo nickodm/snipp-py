@@ -33,14 +33,7 @@ def main(name: str | None, id: str | None, tree: bool) -> int:
         printerr("Error: The ID is too short.")
         return 1
     
-    if name is None and id is None:
-        printerr("Error: You must specify a name or an id.")
-        return 1
-    
-    if id:
-        snippet = find_by_id(id)
-    else:
-        snippet = find_by_name(name)
+    snippet = find_by(name, id)
 
     if snippet is None:
         printerr("Snippet not found.")

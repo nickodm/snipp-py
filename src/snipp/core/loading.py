@@ -1,7 +1,9 @@
+from typing import Generator
+
 from . import Snippet
 from .paths import SNIPPETS
 
-def load_snippets():
+def load_snippets() -> Generator[Snippet, None, None]:
     """
     Load the saved snippets.
 
@@ -60,3 +62,15 @@ def find_by_name(name: str) -> Snippet | None:
         return None
     
     return Snippet.load(path)
+
+def find_by(name: str | None = None, id: str | None = None) -> Snippet | None:
+    """Find and load a snippet by its name or ID.
+
+    :param str | None name: The snippet's name, defaults to None
+    :param str | None id: The snippet's id, defaults to None
+    :return Snippet | None: The snippet, if found.
+    """
+    if id:
+        return find_by_id(id)
+    else:
+        return find_by_name(name)

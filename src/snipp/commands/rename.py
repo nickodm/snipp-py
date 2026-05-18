@@ -1,16 +1,9 @@
 from ..core import *
 
 def main(name: str | None, id: str | None, new_name: str) -> int:
-    if name is None and id is None:
-        printerr("Error: You must specify a name or an id.")
-        return 1
-    
-    if id:
-        snippet = find_by_id(id)
-    else:
-        snippet = find_by_name(name)
+    snippet = find_by(name, id)
 
-    if not snippet:
+    if snippet is None:
         printerr("Snippet not found.")
         return 1
     
