@@ -28,13 +28,20 @@ def print_tree(snippet: Snippet) -> None:
         print(path)
         
 
-def main(id: str, tree: bool) -> int:
+def main(name: str | None, id: str | None, tree: bool) -> int:
     if len(id) < 5:
         printerr("Error: The ID is too short.")
         return 1
     
-    snippet = find_by_id(id)
+    if name is None and id is None:
+        printerr("Error: You must specify a name or an id.")
+        return 1
     
+    if id:
+        snippet = find_by_id(id)
+    else:
+        snippet = find_by_name(name)
+
     if snippet is None:
         printerr("Snippet not found.")
         return 1

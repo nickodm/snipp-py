@@ -75,8 +75,13 @@ def init_parser() -> ArgumentParser:
         description="Show information about a specified snippet."
     )
     
-    show.add_argument("id", type=str,
-        help="the id of the snippet to show (minimum 5 chars)")
+    exclusive = show.add_mutually_exclusive_group(required=True)
+    
+    exclusive.add_argument("-n", "--name", type=str, 
+        help="the name of the snippet to show")
+    exclusive.add_argument("-i", "--id", type=str,
+        help="the ID of the snippet to show")
+    
     show.add_argument("--no-tree", action="store_false", dest="tree",
         help="don't show the snippet's directory tree")
     
