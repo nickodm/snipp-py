@@ -1,4 +1,5 @@
 from typing import Generator
+from pathvalidate import sanitize_filename
 
 from . import Snippet, ID_MIN_LEN
 from .errors import *
@@ -53,12 +54,10 @@ def find_by_name(name: str) -> Snippet:
     :return Snippet: The found snippet.
     :raises SnippetNotFoundError: When the snippet was not found.
     """
-    from .snippet import sanitize_name
-    
     if not SNIPPETS.exists():
         raise SnippetNotFoundError()
     
-    name = sanitize_name(name)
+    name = sanitize_filename(name)
     path = SNIPPETS / (name + ".zip")
     
     if not path.exists():

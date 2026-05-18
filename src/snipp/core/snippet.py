@@ -1,9 +1,9 @@
 from pathlib import Path, PurePath
+from pathvalidate import sanitize_filename
 from zipfile import ZipFile, is_zipfile
 from uuid import uuid4
 from datetime import datetime
 from tempfile import TemporaryDirectory
-import re
 import tomlkit as t
 import os
 
@@ -11,30 +11,6 @@ from .paths import SNIPPETS
 from .errors import *
 
 from snipp import __version_info__
-
-def validate_name(name: str) -> None:
-    """Validate a Snippet's name.
-
-    :param str name: The name to validate.
-    :raises InvalidNameError: When the name is not valid.
-    """
-    if re.match(r"^[\w_]+$", name) is None:
-        raise InvalidNameError(name)
-
-def sanitize_name(name: str) -> str:
-    validate_name(name)
-    
-    replace_pairs = {
-        " ": "_",
-        "ñ": "n",
-        "+": ""
-    }
-    
-    name = name.lower()
-    for old, new in replace_pairs.items():
-        name = name.replace(old, new)
-    
-    return name
 
 class Metadata:
     """
@@ -52,7 +28,7 @@ class Metadata:
         self.software_version: tuple[int, int, int] = __version_info__
         
     def sanitized_name(self) -> str:
-        return sanitize_name(self.name)
+        return sanitize_filename(self.name)
         
     def as_toml(self) -> str:
         """Render the metadata information as a TOML.

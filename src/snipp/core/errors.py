@@ -26,8 +26,3 @@ class IDTooShortError(SnippError):
     def __init__(self, id: str):
         super().__init__(f"The ID is too short (minimum {ID_MIN_LEN}, "
                          f"got {len(id)}).")
-
-class InvalidNameError(SnippError):
-    """The name is not valid for a snippet."""
-    def __init__(self, name: str):
-        super().__init__(f"\"{name}\" is not a valid snippet name.")
