@@ -18,6 +18,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 from .core import *
+from .core.paths import init_project_dir
 from . import commands, __version__
 
 def init_parser() -> ArgumentParser:
@@ -25,7 +26,7 @@ def init_parser() -> ArgumentParser:
         return Path(s).expanduser().absolute()
     
     parser = ArgumentParser(
-        prog="Snippets",
+        prog="snipp",
         description="A simple program to manage file and directory snippets."
     )
     
@@ -184,6 +185,7 @@ def main() -> int:
     func = args.func
     del args.command, args.func
     
+    init_project_dir()
     return func(**vars(args))
 
 def run() -> int:
