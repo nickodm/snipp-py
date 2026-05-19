@@ -277,6 +277,13 @@ class Snippet:
         Assign a path in the snippets directory based on the sanitized name.
         """
         return SNIPPETS / (self.metadata.sanitized_name() + ".zip")
+    
+    def update_contents(self, origin: Path) -> None:
+        """Update the contents of a snippet.
+
+        :param Path origin: The path where the new contents are.
+        """
+        self._compress(origin, self.path)
         
     @staticmethod
     def _is_valid(path: Path) -> bool:
