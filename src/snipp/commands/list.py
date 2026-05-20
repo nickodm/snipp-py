@@ -15,7 +15,7 @@ def print_normal():
         
         console.rule(f"[{counter:0>2}]", align="left")
         print(f"[{key_format}]NAME          :[/] {snippet.name}")
-        print(f"[{key_format}]ID            :[/] {snippet.uuid}")
+        print(f"[{key_format}]ID            :[/] {snippet.id}")
         print(f"[{key_format}]CREATION DATE :[/] {date}")
         print(f"[{key_format}]GIT INIT?     :[/] {snippet.git_init}")
         print(f"[{key_format}]DESCRIPTION   :[/] {snippet.description}")
@@ -28,7 +28,7 @@ def print_normal():
 
 def print_oneline():
     for snippet in load_snippets():
-        print(f"[[bold yellow]{snippet.uuid[:ID_MIN_LEN]}[/]] {snippet.name}")
+        print(f"[[bold yellow]{snippet.min_id}[/]] {snippet.name}")
 
 def main(oneline: bool) -> int:
     if oneline:

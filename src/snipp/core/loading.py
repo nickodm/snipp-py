@@ -1,7 +1,7 @@
 from typing import Generator
 from pathvalidate import sanitize_filename
 
-from . import Snippet, ID_MIN_LEN
+from . import Snippet
 from .errors import *
 from .paths import SNIPPETS
 
@@ -28,7 +28,7 @@ def find_by_id(id: str) -> Snippet:
     :raises IDTooShortError: When the ID is too short.
     :raise SnippetNotFoundError: When the snippet was not found.
     """
-    if len(id) < ID_MIN_LEN:
+    if len(id) < Snippet.ID_MIN_LEN:
         raise IDTooShortError(id)
     
     if not SNIPPETS.exists():
@@ -40,7 +40,7 @@ def find_by_id(id: str) -> Snippet:
         
         try:
             temp = Snippet.load(file)
-            if temp.uuid.startswith(id):
+            if temp.id.startswith(id):
                 return temp
         except InvalidSnippetError:
             pass # We don't want this problems here
@@ -58,7 +58,7 @@ def find_by_name(name: str) -> Snippet:
         raise SnippetNotFoundError()
     
     name = sanitize_filename(name)
-    path = SNIPPETS / (name + ".zip")
+    path = SNIPPETS / (name + Snippet.SUFFIX)
     
     if not path.exists():
         raise SnippetNotFoundError()

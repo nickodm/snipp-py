@@ -1,8 +1,6 @@
 from pathlib import Path
 from rich.console import Console
 
-from . import ID_MIN_LEN
-
 err = Console(stderr=True, style="red")
 printerr = err.print
 
@@ -24,5 +22,6 @@ class IDTooShortError(SnippError):
     """The provided ID is too short to recognize a snippet."""
     exit_code: int = 2
     def __init__(self, id: str):
-        super().__init__(f"The ID is too short (minimum {ID_MIN_LEN}, "
+        from .snippet import Snippet # prevent circular import
+        super().__init__(f"The ID is too short (minimum {Snippet.ID_MIN_LEN}, "
                          f"got {len(id)}).")

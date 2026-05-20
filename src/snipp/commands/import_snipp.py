@@ -16,7 +16,7 @@ def main(path: Path, update: bool) -> int:
     
     if not update and already_stored(snippet):
         printerr("The snippet is already stored "
-                 f"(id [blue]{snippet.uuid[:5]}[/blue]).")
+                 f"(id [blue]{snippet.min_id}[/blue]).")
         return 1
     
     snippet.path = snippet.assigned_path()

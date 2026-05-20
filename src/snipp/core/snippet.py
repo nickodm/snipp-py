@@ -3,14 +3,32 @@ from pathvalidate import sanitize_filename
 from zipfile import ZipFile, is_zipfile
 from uuid import uuid4
 from datetime import datetime
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, NamedTemporaryFile
+from typing import Generator
 import tomlkit as t
+import shutil
 import os
 
-from .paths import SNIPPETS
+from .paths import SNIPPETS, TEMP
 from .errors import *
 
 from snipp import __version_info__
+
+def relatives(path: Path) -> Generator[tuple[PurePath, PurePath], None, None]:
+    """Walk over the directory at `path` and yield tuples with the
+    relative path and the absolute path of each file.
+    
+    :param Path path: The directory to walk in.
+    :yield tuple[PurePath, PurePath]: The tuple `(relative, file_path)`.
+    """
+    # {relative: original}
+    for item, _, files in os.walk(path):
+        item = PurePath(item)
+        
+        for file in files:
+            file_path: PurePath = item / file
+            relative = file_path.relative_to(path)
+            yield (relative, file_path)
 
 class Metadata:
     """
@@ -21,7 +39,7 @@ class Metadata:
     
     def __init__(self, name: str, description: str = "", git_init: bool = True):
         self.name: str = name
-        self.uuid: str = str(uuid4())
+        self.id: str = str(uuid4())
         self.description: str = description
         self.git_init: bool = git_init
         self.creation_date: datetime | None = datetime.now()
@@ -42,7 +60,7 @@ class Metadata:
         info.add("name", self.name)
         
         info.add(t.comment("DO NOT TOUCH!"))
-        info.add("uuid", self.uuid)
+        info.add("id", self.id)
         
         info.add(t.comment("The description of the snippet."))
         info.add("description", self.description)
@@ -79,7 +97,7 @@ class Metadata:
         info: dict = loaded.get("snippet-info", {})
         
         self.name = info.get("name", "[Unnamed]")
-        self.uuid = info.get("uuid", str(uuid4()))
+        self.id = info.get("id", str(uuid4()))
         self.description = info.get("description", "")
         self.git_init = info.get("git_init", True)
         self.creation_date = info.get("creation_date", None)
@@ -98,9 +116,22 @@ class Metadata:
         :return Metadata: The extracted metadata.
         """
         return cls.from_toml(zf.read(cls.FILENAME))
+    
+    def write(self, zf: ZipFile) -> None:
+        """Write the metadata of a snippet to a **opened** ZipFile.
+
+        :param ZipFile zf: The opened zipfile.
+        """
+        return zf.writestr(self.FILENAME, self.as_toml())
 
 
-class Snippet:
+class Snippet:    
+    ID_MIN_LEN: int = 7
+    """The minimum length to use an ID."""
+    
+    SUFFIX: str = ".snipp"
+    """The suffix of the snippet files."""
+    
     def __init__(self):
         self.metadata: Metadata = None
         self.path: Path = None
@@ -108,22 +139,33 @@ class Snippet:
     
     @property
     def name(self) -> str:
+        """The snippet's name."""
         return self.metadata.name
     
     @property
-    def uuid(self) -> str:
-        return self.metadata.uuid
+    def id(self) -> str:
+        """The snippet's full ID."""
+        return self.metadata.id
+    
+    @property
+    def min_id(self) -> str:
+        """The snippet's ID, limited to it's minimum length."""
+        return self.id[:self.ID_MIN_LEN]
     
     @property
     def description(self) -> str:
+        """The snippet's description."""
         return self.metadata.description
     
     @property
     def git_init(self) -> bool:
+        """Whether to create a git repository when
+        deploying the snippet."""
         return self.metadata.git_init
     
     @property
     def creation_date(self) -> datetime | None:
+        """The date when the snippet was created."""
         return self.metadata.creation_date
     
     @classmethod
@@ -166,7 +208,6 @@ class Snippet:
         
         self: Snippet = cls.__new__(cls)
         self.path = path
-        self.origin = None
         
         with self.open() as zf:
             self.metadata = Metadata.extract(zf)
@@ -250,33 +291,26 @@ class Snippet:
         :param bool raw: If true, the directory will be compressed as-is,
         without the snippet format.
         """
-        
-        # {relative: original}
-        buffer: dict[str, Path] = {}
-        for item, _, files in os.walk(origin):
-            item = Path(item)
-            
-            for file in files:
-                file_path: Path = item / file
-                relative = file_path.relative_to(origin).as_posix()
-                buffer[relative] = file_path
-        
-        if raw:
-            with ZipFile(to, "w") as zf:
-                for relative, original in buffer.items():
-                    zf.write(original, relative)
-        else:
-            with ZipFile(to, "w") as zf:
-                zf.writestr(Metadata.FILENAME, self.metadata.as_toml())
+        with NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP) as temp_file:
+            temp_path: Path = Path(temp_file.name)
 
-                for relative, original in buffer.items():
-                    zf.write(original, PurePath("contents") / relative)
+            with ZipFile(temp_file, "w") as zf:
+                if not raw:
+                    self.metadata.write(zf)
+
+                for relative, original in relatives(origin):
+                    if not raw:
+                        relative = PurePath("contents") / relative
+                    
+                    zf.write(original, relative)
+        
+        shutil.move(temp_path, to)
 
     def assigned_path(self) -> Path:
         """
         Assign a path in the snippets directory based on the sanitized name.
         """
-        return SNIPPETS / (self.metadata.sanitized_name() + ".zip")
+        return SNIPPETS / (self.metadata.sanitized_name() + self.SUFFIX)
     
     def update_contents(self, origin: Path) -> None:
         """Update the contents of a snippet.

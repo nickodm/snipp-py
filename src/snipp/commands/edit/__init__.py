@@ -54,7 +54,7 @@ def lock(snippet: Snippet) -> None:
     
     with open(path, "w") as fp:
         json.dump({
-            "id": snippet.uuid,
+            "id": snippet.id,
             "pointer": get_temp_dir(snippet).as_posix()
         }, fp)
     
@@ -90,7 +90,7 @@ def is_locked(snippet: Snippet) -> bool:
     if id is None:
         return False
     
-    return snippet.uuid == id
+    return snippet.id == id
 
 def find_locked() -> Snippet | None:
     """Find and load the locked snippet, if exists.

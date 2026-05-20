@@ -36,7 +36,7 @@ def main(name: str | None, id: str | None, subcmd: str | None) -> int:
         else:
             printerr("Error: Another snippet is already being edited "
                      f"([blue]{snippet.name}[/], "
-                     f"[yellow]{snippet.uuid[:ID_MIN_LEN]}[/])")
+                     f"[yellow]{snippet.min_id}[/])")
             return 1
     
     if snippet is None:

@@ -2,7 +2,7 @@ from rich.console import Console
 
 __all__ = [
     #* Generals
-    "console", "print", "paths", "Snippet", "ID_MIN_LEN",
+    "console", "print", "paths", "Snippet",
     
     #* Loading
     "load_snippets", "find_by_id", "find_by_name", "find_by", "already_stored",
@@ -10,9 +10,6 @@ __all__ = [
     #* Errors
     "SnippError", "err", "printerr"
 ]
-
-ID_MIN_LEN: int = 7
-"""The minimum length to use an ID."""
 
 from . import paths
 from .snippet import Snippet
@@ -29,7 +26,7 @@ def already_stored(snippet: Snippet) -> bool:
     :return bool:
     """
     for snipp in load_snippets():
-        if snipp.uuid == snippet.uuid:
+        if snipp.id == snippet.id:
             return True
     
     return False

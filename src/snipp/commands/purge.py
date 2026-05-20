@@ -16,7 +16,7 @@ def main(force: bool) -> int:
     counter = 0
     for snippet in load_snippets():
         name = snippet.name
-        id = snippet.uuid[:ID_MIN_LEN]
+        id = snippet.min_id
 
         if force:
             remove(snippet)

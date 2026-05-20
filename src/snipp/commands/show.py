@@ -36,7 +36,7 @@ def main(name: str | None, id: str | None, tree: bool) -> int:
         fdate: str = "[bright_black][Not registered]"
     
     print(f"[bold]NAME          :[/] {snippet.name}")
-    print(f"[bold]ID            :[/] {snippet.uuid}")
+    print(f"[bold]ID            :[/] {snippet.id}")
     print(f"[bold]CREATION DATE :[/] {fdate}")
     print(f"[bold]GIT INIT?     :[/] {snippet.git_init}")
     print(f"[bold]DESCRIPTION   :[/] {snippet.description}")
