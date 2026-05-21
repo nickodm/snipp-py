@@ -1,31 +1,52 @@
-from pathlib import Path
-
 from ..core import *
 from ..core.parser import command_register, SubParser
 
 def print_tree(snippet: Snippet) -> None:
-    last_parent: Path | None = None
-    
-    nl = snippet.namelist()
-    
-    if len(nl) == 0:
+    """Print the tree of the Snippet.
+
+    :param Snippet snippet: The snippet to print the tree.
+    """
+    file_count = len(snippet.namelist())
+
+    if file_count == 0:
         print("Snippet has no contents.")
         return
     
-    print(snippet.name)
-    for i, path in enumerate(nl):
-        branch: str = "|-" if i < len(nl) - 1 else "└─"
+    print("[bold blue]" + snippet.name.upper())
+    
+    def get_indent(n: int) -> str:
+        buff = ""
         
-        if path.name.startswith("."):
-            print(branch + path.name)
-            continue
+        for i in range(n):
+            if i % 3 == 0:
+                buff += "[dark_orange]|[/]"
+            else:
+                buff += " "
         
-        if path.parents[0] != last_parent:
-            last_parent = path.parents[0]
-            print("|-" + last_parent.name)
+        return buff
+    
+    dir_count: int = 0
+    last: tuple[str] = tuple()
+    for path in snippet.namelist():
+        branch = "[dark_orange]" + "|-" + "[/]"
         
-        print(path)
+        current: tuple[str] = path.parts
+        indent = 0
+        for index, part in enumerate(current):
+            l = last[index] if len(last) > index else None
+            is_dir = index < len(current) - 1
+            
+            if part != l:
+                if is_dir:
+                    part = "[blue]" + part + "[/]"
+                    dir_count += 1
+                
+                print(get_indent(indent) + branch + " " + part, highlight=False)
+            indent += 3
         
+        last = current
+    
+    print(f"\nSnippet has {file_count} files and {dir_count} directories.")
 
 def main(name: str | None, id: str | None, tree: bool) -> int:
     snippet = find_by(name, id)
