@@ -17,7 +17,8 @@ def print_normal():
         print(f"[{key_format}]NAME          :[/] {snippet.name}")
         print(f"[{key_format}]ID            :[/] {snippet.id}")
         print(f"[{key_format}]CREATION DATE :[/] {date}")
-        print(f"[{key_format}]GIT INIT?     :[/] {snippet.git_init}")
+        print(f"[{key_format}]GIT INIT?     :[/] {snippet.git_init}",
+              highlight=False)
         print(f"[{key_format}]DESCRIPTION   :[/] {snippet.description}")
         counter += 1
     
@@ -31,10 +32,11 @@ def print_oneline():
         print(f"[[bold yellow]{snippet.min_id}[/]] {snippet.name}")
 
 def main(oneline: bool) -> int:
-    if oneline:
-        print_oneline()
-    else:
-        print_normal()
+    with console.pager(styles=True):
+        if oneline:
+            print_oneline()
+        else:
+            print_normal()
     
     return 0
 

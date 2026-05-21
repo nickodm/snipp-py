@@ -56,15 +56,16 @@ def main(name: str | None, id: str | None, tree: bool) -> int:
     else:
         fdate: str = "[bright_black][Not registered]"
     
-    print(f"[bold]NAME          :[/] {snippet.name}")
-    print(f"[bold]ID            :[/] {snippet.id}")
-    print(f"[bold]CREATION DATE :[/] {fdate}")
-    print(f"[bold]GIT INIT?     :[/] {snippet.git_init}")
-    print(f"[bold]DESCRIPTION   :[/] {snippet.description}")
+    with console.pager(styles=True):
+        print(f"[bold]NAME          :[/] {snippet.name}")
+        print(f"[bold]ID            :[/] {snippet.id}")
+        print(f"[bold]CREATION DATE :[/] {fdate}")
+        print(f"[bold]GIT INIT?     :[/] {snippet.git_init}", highlight=False)
+        print(f"[bold]DESCRIPTION   :[/] {snippet.description}")
     
-    if tree:
-        console.rule("[Tree]")
-        print_tree(snippet)
+        if tree:
+            console.rule("[Tree]")
+            print_tree(snippet)
     
     return 0
 
