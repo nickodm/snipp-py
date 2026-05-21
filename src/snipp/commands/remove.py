@@ -19,16 +19,16 @@ def main(name: str | None, id: str | None) -> int:
 @command_register
 def register(cmds: SubParser) -> None:
     delete = cmds.add_parser(
-        name="delete",
-        help="delete a snippet",
-        description="Delete a saved snippet."
+        name="remove",
+        help="remove a snippet",
+        description="Remove a saved snippet."
     )
     
     exclusive = delete.add_mutually_exclusive_group(required=True)
     
     exclusive.add_argument("-n", "--name", type=str, 
-        help="the name of the snippet to show")
+        help="the name of the snippet to remove")
     exclusive.add_argument("-i", "--id", type=str,
-        help="the ID of the snippet to show")
+        help="the ID of the snippet to remove")
     
     delete.set_defaults(func=main)
