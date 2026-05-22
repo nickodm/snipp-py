@@ -1,13 +1,18 @@
 """
 list [--oneline]
 """
+import logging as _logging
+
 from ..core import * 
 from ..core.parser import command_register, SubParser
+
+logger = _logging.getLogger(__name__)
 
 def print_normal():
     key_format: str = "bold"
     counter = 0
     for snippet in load_snippets():
+        logger.info("Printing %r", snippet)
         if snippet.creation_date:
             date = snippet.creation_date.strftime("%Y-%m-%d %H:%H")
         else:
@@ -29,6 +34,7 @@ def print_normal():
 
 def print_oneline():
     for snippet in load_snippets():
+        logger.info("Printing %r", snippet)
         print(f"[[bold yellow]{snippet.min_id}[/]] {snippet.name}")
 
 def main(oneline: bool) -> int:

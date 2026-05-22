@@ -1,5 +1,9 @@
+import logging as _logging
+
 from ..core import *
 from ..core.parser import command_register, SubParser
+
+logger = _logging.getLogger(__name__)
 
 def print_tree(snippet: Snippet) -> None:
     """Print the tree of the Snippet.
@@ -50,6 +54,8 @@ def print_tree(snippet: Snippet) -> None:
 
 def main(name: str | None, id: str | None, tree: bool) -> int:
     snippet = find_by(name, id)
+    
+    logger.info("Showing info of %r", snippet)
     
     if snippet.creation_date:
         fdate: str = snippet.creation_date.strftime("%Y-%m-%d %H:%M")

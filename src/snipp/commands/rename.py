@@ -1,14 +1,20 @@
+import logging as _logging
+
 from ..core import *
 from ..core.parser import *
+
+logger = _logging.getLogger(__name__)
 
 def main(name: str | None, id: str | None, new_name: str) -> int:
     snippet = find_by(name, id)
     
     old_name = snippet.name
     
+    logger.info("Renaming %r", snippet)
     with console.status("Renaming..."):
         snippet.rename(new_name)
     
+    logger.info("Renamed %r", snippet)
     print(f"Renamed snippet \"{old_name}\" to \"{snippet.name}\".")
     return 0
 

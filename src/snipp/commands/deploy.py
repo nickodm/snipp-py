@@ -1,8 +1,11 @@
 from pathlib import Path
 from subprocess import run
+import logging as _logging
 
 from ..core import *
 from ..core.parser import *
+
+logger = _logging.getLogger(__name__)
 
 def dir_is_empty(path: Path) -> bool:
     for _ in path.iterdir():
@@ -16,20 +19,26 @@ def git_init(path: Path) -> bool:
     :param Path path: The path where the git repository will be created.
     :return bool: Whether the git repository was created.
     """
+    logger.info("Creating git repository at \"%s\"", path)
     try:
         return run(["git", "init"], cwd=path, capture_output=True) \
             .returncode == 0
     except FileNotFoundError:
+        logger.exception("Could not create git repository.")
         return False
 
 def main(name: str | None, id: str | None, path: Path, force: bool) -> int:
     snippet = find_by(name, id)
     
+    logger.info("Deploying snippet %r", snippet)
+    
     if path.is_file():
+        logger.critical("Tried to deploy to a file.")
         printerr("Error: Can't deploy to a file.")
         return 1
     
     if not force and path.is_dir() and not dir_is_empty(path):
+        logger.critical("Tried to deploy to a not empty directory.")
         printerr("Error: The directory is not empty.")
         return 1
    
@@ -42,7 +51,8 @@ def main(name: str | None, id: str | None, path: Path, force: bool) -> int:
             else:
                 printerr("Cannot create git repository.")
     
-    print(":white_check_mark: [green]Snippet deployed successfully.")
+    logger.info("Snippet deployed successfully.")
+    print(":white_check_mark: Snippet deployed successfully.")
     return 0
 
 @command_register

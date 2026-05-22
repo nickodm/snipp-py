@@ -1,16 +1,21 @@
 from rich.prompt import Confirm
+import logging as _logging
 import os
 
 from ..core import *
 from ..core.parser import *
 
+logger = _logging.getLogger(__name__)
+
 def remove(snippet: Snippet) -> None:
+    logger.info("Removing snippet %r.", snippet)
     try:
         os.remove(snippet.path)
     except PermissionError:
-        printerr(f":cross_mark: Cannot remove \"{snippet}\": "
+        printerr(f":cross_mark: Cannot remove \"{snippet.name}\": "
                  "The file is being used or the process has no permission to "
                  "delete it.")
+        logger.exception("Cannot remove %r", snippet)
 
 def main(force: bool) -> int:
     counter = 0
@@ -20,7 +25,7 @@ def main(force: bool) -> int:
 
         if force:
             remove(snippet)
-            print(f"Deleted snippet \"[blue]{name}[/]\" ([yellow]{id}[/]).")
+            print(f"Removed snippet \"[blue]{name}[/]\" ([yellow]{id}[/]).")
             counter += 1
             continue
         
@@ -34,6 +39,7 @@ def main(force: bool) -> int:
         else:
             print(":cross_mark: [green]Not deleted.")
     
+    logger.info(f"Removed {counter} snippets.")
     print(f"Removed {counter} snippets.")
     return 0
 

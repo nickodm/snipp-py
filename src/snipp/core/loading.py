@@ -1,9 +1,12 @@
 from typing import Generator
 from pathvalidate import sanitize_filename
+import logging as _logging
 
 from . import Snippet
 from .errors import *
 from .paths import SNIPPETS
+
+logger = _logging.getLogger(__name__)
 
 def load_snippets() -> Generator[Snippet, None, None]:
     """
@@ -12,12 +15,13 @@ def load_snippets() -> Generator[Snippet, None, None]:
     :yield Snippet: Each found snippet.
     """
     if not SNIPPETS.exists():
+        logger.error("snippet directory doesn't exists.")
         return
     
     for entry in SNIPPETS.iterdir():
         try:
             yield Snippet.load(entry)
-        except InvalidSnippetError: 
+        except InvalidSnippetError:
             pass
 
 def find_by_id(id: str) -> Snippet:
@@ -29,9 +33,11 @@ def find_by_id(id: str) -> Snippet:
     :raise SnippetNotFoundError: When the snippet was not found.
     """
     if len(id) < Snippet.ID_MIN_LEN:
+        logger.critical("ID too short: %s", id)
         raise IDTooShortError(id)
     
     if not SNIPPETS.exists():
+        logger.critical("snippets directory doesn't exists.")
         raise SnippetNotFoundError()
     
     for file in SNIPPETS.iterdir():
@@ -55,6 +61,7 @@ def find_by_name(name: str) -> Snippet:
     :raises SnippetNotFoundError: When the snippet was not found.
     """
     if not SNIPPETS.exists():
+        logger.critical("snippets directory doesn't exists.")
         raise SnippetNotFoundError()
     
     name = sanitize_filename(name)

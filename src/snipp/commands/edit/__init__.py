@@ -1,11 +1,14 @@
 from pathlib import Path
 from subprocess import run
+import logging
 import json
 import os
 
 from ...core import *
 from ...core.errors import SnippetNotFoundError, IDTooShortError
 from ...core.parser import *
+
+logger = logging.getLogger(__name__)
 
 """
 snipp edit start (-n NAME | -i ID)
@@ -21,14 +24,18 @@ def open_in_editor(path: Path) -> bool:
     :return bool: Whether the action was successfull.
     """
     editor = os.environ.get("EDITOR")
+    
+    logger.info(f"Trying to open \"{path}\" in editor.")
 
     if editor is None:
+        logger.warning(f"Environment variable EDITOR is empty.")
         return False
     
     try:
         return run(f"{editor} {path}", capture_output=False).returncode == 0
     except (RuntimeError, FileNotFoundError):
         printerr("Error: Cannot open the directory with the editor.")
+        logger.exception("Can't open editor.")
         return False
 
 def get_lock_path(snippet: Snippet) -> Path:
@@ -52,6 +59,7 @@ def lock(snippet: Snippet) -> None:
     """
     path: Path = get_lock_path(snippet)
     
+    logger.info(f"Writing lock file of {snippet} at \"{path}\".")
     with open(path, "w") as fp:
         json.dump({
             "id": snippet.id,
@@ -66,6 +74,7 @@ def unlock(snippet: Snippet) -> None:
     if not is_locked(snippet):
         return
     
+    logging.info(f"Unlocking \"{snippet}\".")
     get_lock_path(snippet).unlink(True)
 
 def is_locked(snippet: Snippet) -> bool:
@@ -100,18 +109,22 @@ def find_locked() -> Snippet | None:
     dir: Path = paths.dirs.user_runtime_path
     lockfile: Path | None = None
     
+    logger.info("Finding locked snippet.")
     for item in dir.iterdir():
         if item.is_file() and item.suffix == ".lock":
             lockfile = item
             break
     
     if lockfile is None:
+        logger.info("Lock file was not found.")
         return None
     
+    logger.info("Opening lock file: \"%s\"", lockfile)
     try:
         with open(lockfile) as fp:
             data: dict = json.load(fp)
     except json.JSONDecodeError:
+        logger.exception("Invalid lock file.")
         lockfile.unlink()
         return None
     

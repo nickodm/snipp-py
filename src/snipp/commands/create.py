@@ -1,7 +1,10 @@
 from pathlib import Path
+import logging as _logging
 
 from ..core import *
 from ..core.parser import *
+
+logger = _logging.getLogger(__name__)
 
 def read_description(path: Path) -> str:
     """read the description from a file.
@@ -30,9 +33,11 @@ def main(path: Path, name: str, description: str, git: bool, to: Path | None,
         description = read_description(description_file)
     
     with console.status("Creating..."):
+        logger.info("Creating snippet from \"%s\".", path)
         snippet = Snippet.create(path, name, description, git, to)
 
-    print(f":white_check_mark: [green]Created snippet \"{snippet.name}\".")
+    logger.info("Created snippet %r, saved to %s", snippet, to)
+    print(f":white_check_mark: Created snippet \"{snippet.name}\".")
     
     if to is not None:
         print(f"Saved to \"{snippet.path}\".")

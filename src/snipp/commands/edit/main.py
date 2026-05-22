@@ -1,10 +1,14 @@
+import logging
+
 from ...core import *
 from ...core.parser import *
 
 from .abort import abort_edit
 from .done import done_edit
-
 from . import *
+
+logger = logging.getLogger(__name__)
+
 def create_edit(snippet: Snippet) -> int:
     temp_dir = get_temp_dir(snippet)
     
@@ -13,6 +17,7 @@ def create_edit(snippet: Snippet) -> int:
                  f"[blue][{temp_dir}][/].")
         return 1
     
+    logger.info(f"Editing snippet {snippet}.")
     with console.status("Extracting snippet to a temporary directory..."):
         snippet.extract(temp_dir)
         lock(snippet)

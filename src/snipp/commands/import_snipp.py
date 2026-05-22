@@ -1,32 +1,43 @@
 from pathlib import Path
+import logging as _logging
 
 from ..core import *
 from ..core.parser import *
 
+logger = _logging.getLogger(__name__)
+
 def main(path: Path, update: bool) -> int:
+    logger.info("Importing at \"%s\"", path)
+    
     if not path.exists():
+        logger.critical("\"%s\" doesn't exists.")
         printerr("Error: The path doesn't exists.")
         return 1
     
     if path.is_dir():
+        logger.critical("\"%s\" is a directory.")
         printerr("Error: The path is a dir.")
         return 1
     
     snippet = Snippet.load(path)
     
     if not update and already_stored(snippet):
+        logger.critical("%r already exists.", snippet)
         printerr("The snippet is already stored "
                  f"(id [blue]{snippet.min_id}[/blue]).")
         return 1
     
     snippet.path = snippet.assigned_path()
     with console.status("Importing..."):
+        logger.info("Reading bytes from snippet to import...")
         with open(path, "rb") as fp:
             read = fp.read()
         
+        logger.info("Writing bytes of snippet to import...")
         with open(snippet.path, "wb") as fp:
             fp.write(read)
     
+    logger.info("Snippet imported successfully.")
     print(f":white_check_mark: Imported snippet \"{snippet.name}\".")
     return 0
 

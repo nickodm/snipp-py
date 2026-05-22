@@ -6,6 +6,7 @@ from datetime import datetime
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 from typing import Generator
 import tomlkit as t
+import logging as _logging
 import shutil
 import os
 
@@ -13,6 +14,8 @@ from .paths import SNIPPETS, TEMP
 from .errors import *
 
 from snipp import __version_info__
+
+logger = _logging.getLogger(__name__)
 
 def relatives(path: Path) -> Generator[tuple[PurePath, PurePath], None, None]:
     """Walk over the directory at `path` and yield tuples with the
@@ -204,11 +207,13 @@ class Snippet:
         :raises InvalidSnippetError: When the snippet is invalid.
         """
         if not cls._is_valid(path):
+            logger.error("Invalid snippet at \"%s\".", path)
             raise InvalidSnippetError(path)
         
         self: Snippet = cls.__new__(cls)
         self.path = path
         
+        logger.info(f"Loading Snippet from \"{self.path}\".")
         with self.open() as zf:
             self.metadata = Metadata.extract(zf)
         
@@ -271,6 +276,7 @@ class Snippet:
 
         :param Path to: The path where the snippet will be extracted.
         """
+        logger.info("Extracting %r to \"%s\".", self, path)
         with ZipFile(self.path) as z:
             for file in self.namelist():
                 destiny: Path = path.joinpath(file)
@@ -281,6 +287,7 @@ class Snippet:
                 
                 with open(destiny, "wb") as fp:
                     fp.write(buffer)
+        logger.info("Successfully extracted %r to \"%s\".", self, path)
     
     def _compress(self, origin: Path, to: Path, *, raw: bool = False):
         """Compress a directory with the snippet style.
@@ -291,6 +298,7 @@ class Snippet:
         :param bool raw: If true, the directory will be compressed as-is,
         without the snippet format.
         """
+        logger.info("Compressing %r", self)
         with NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP) as temp_file:
             temp_path: Path = Path(temp_file.name)
 
@@ -305,6 +313,7 @@ class Snippet:
                     zf.write(original, relative)
         
         shutil.move(temp_path, to)
+        logger.info("Compressed %r", self)
 
     def assigned_path(self) -> Path:
         """
@@ -343,4 +352,5 @@ class Snippet:
         return True
         
     def __repr__(self) -> str:
-        return f"Snippet(name={self.name}, path={self.path})"
+        return f"Snippet(name={self.name!r}, id={self.id!r}, " \
+               f"path={self.path!r})"

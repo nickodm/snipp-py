@@ -1,12 +1,16 @@
 from shutil import rmtree
+import logging
 
 from . import *
+
+logger = logging.getLogger(__name__)
 
 def abort_edit(snippet: Snippet) -> int:
     if not is_locked(snippet):
         printerr("The snippet is not being edited.")
         return 1
     
+    logger.info(f"Aborting edition of {snippet}")
     temp_dir = get_temp_dir(snippet)
     try:
         rmtree(temp_dir)
