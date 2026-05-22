@@ -1,11 +1,20 @@
 import logging as _logging
 
 from ..core import *
+from ..core.errors import SnippetNotFoundError
 from ..core.parser import *
 
 logger = _logging.getLogger(__name__)
 
 def main(name: str | None, id: str | None, new_name: str) -> int:
+    try:
+        snippet = find_by_name(new_name)
+        logger.critical("Repeated name: %s", name)
+        printerr("There is already a snippet with this name.")
+        return 1
+    except SnippetNotFoundError:
+        pass
+    
     snippet = find_by(name, id)
     
     old_name = snippet.name

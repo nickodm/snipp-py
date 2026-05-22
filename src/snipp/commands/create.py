@@ -2,6 +2,7 @@ from pathlib import Path
 import logging as _logging
 
 from ..core import *
+from ..core.errors import SnippetNotFoundError
 from ..core.parser import *
 
 logger = _logging.getLogger(__name__)
@@ -31,6 +32,14 @@ def main(path: Path, name: str, description: str, git: bool, to: Path | None,
          description_file: Path | None) -> int:
     if description_file:
         description = read_description(description_file)
+    
+    try:
+        snippet = find_by_name(name)
+        logger.critical("Repeated name: %s", name)
+        printerr("There is already a snippet with this name.")
+        return 1
+    except SnippetNotFoundError:
+        pass
     
     with console.status("Creating..."):
         logger.info("Creating snippet from \"%s\".", path)
