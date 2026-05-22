@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory, NamedTemporaryFile
 from typing import Generator
 import tomlkit as t
 import logging as _logging
+import json
 import shutil
 import os
 
@@ -33,12 +34,14 @@ def relatives(path: Path) -> Generator[tuple[PurePath, PurePath], None, None]:
             relative = file_path.relative_to(path)
             yield (relative, file_path)
 
+
 class Metadata:
     """
     A class representing the metadata of a snippet.
     """
     
-    FILENAME: str = "metadata.toml"
+    FILENAME: str = "metadata.json"
+    """The name of the metadata file inside the snippet."""
     
     def __init__(self, name: str, description: str = "", git_init: bool = True):
         self.name: str = name
@@ -68,7 +71,8 @@ class Metadata:
         info.add(t.comment("The description of the snippet."))
         info.add("description", self.description)
         
-        info.add(t.comment("Whether to init a git repository when using the snippet."))
+        info.add(t.comment("Whether to init a git repository when "
+                           "using the snippet."))
         info.add("git_init", self.git_init)
         
         if self.creation_date is not None:
@@ -87,17 +91,41 @@ class Metadata:
         
         return doc.as_string()
     
+    def as_json(self, *, 
+                indent: int | None = 4) -> str:
+        """Dump the metadata as a JSON.
+        
+        :param int | None indent: The indentation for the JSON,
+        defaults to 4
+        
+        :return str: The metadata as a JSON.
+        """
+        
+        data = {
+            "snippet-info": {
+                "name": self.name,
+                "id": self.id,
+                "description": self.description,
+                "git_init": self.git_init,
+                "creation_date": self.creation_date.toordinal(),
+            },
+            "software-info": {
+                "version": self.software_version
+            }
+        }
+        
+        return json.dumps(data, indent=indent)
+    
     @classmethod
-    def from_toml(cls, toml: str | bytes) -> 'Metadata':
-        """Parse the metadata information from a TOML string.
+    def from_dict(cls, d: dict) -> 'Metadata':
+        """Load a snippet's metadata from a dictionary.
 
-        :param str | bytes toml: The TOML as a string or bytes.
+        :param dict d: The dictionary.
         :return Metadata: The loaded metadata.
         """
-        self: Metadata = cls.__new__(cls)
-
-        loaded = t.parse(toml)
-        info: dict = loaded.get("snippet-info", {})
+        self = cls.__new__(cls)
+        
+        info: dict = d.get("snippet-info", {})
         
         self.name = info.get("name", "[Unnamed]")
         self.id = info.get("id", str(uuid4()))
@@ -105,11 +133,32 @@ class Metadata:
         self.git_init = info.get("git_init", True)
         self.creation_date = info.get("creation_date", None)
         
-        software_info: dict = loaded.get("software-info", {})
+        software_info: dict = d.get("software-info", {})
         self.software_version = tuple(software_info.get("version", 
                                                         __version_info__))
         
         return self
+    
+    @classmethod
+    def from_toml(cls, source: str | bytes) -> 'Metadata':
+        """Parse the metadata information from a TOML string.
+
+        :param str | bytes source: The TOML as a string or bytes.
+        :return Metadata: The loaded metadata.
+        """
+        return cls.from_dict(t.parse(source))
+    
+    @classmethod
+    def from_json(cls, source: str | bytes) -> 'Metadata':
+        """Parse the metadata information from a JSON string.
+
+        :param str | bytes source: The JSON as a string or bytes.
+        :return Metadata: The loaded metadata.
+        """
+        data: dict = json.loads(source)
+        info = data["snippet-info"]
+        info["creation_date"] = datetime.fromordinal(info["creation_date"])
+        return cls.from_dict(data)
     
     @classmethod
     def extract(cls, zf: ZipFile) -> 'Metadata':
@@ -118,14 +167,14 @@ class Metadata:
         :param ZipFile zf: The opened ZipFile.
         :return Metadata: The extracted metadata.
         """
-        return cls.from_toml(zf.read(cls.FILENAME))
+        return cls.from_json(zf.read(cls.FILENAME))
     
     def write(self, zf: ZipFile) -> None:
         """Write the metadata of a snippet to a **opened** ZipFile.
 
         :param ZipFile zf: The opened zipfile.
         """
-        return zf.writestr(self.FILENAME, self.as_toml())
+        return zf.writestr(self.FILENAME, self.as_json())
 
 
 class Snippet:    
@@ -341,10 +390,11 @@ class Snippet:
         if not is_zipfile(path):
             return False
         
-        namelist: list[str] = []
-        
         with ZipFile(path) as zf:
-            namelist = zf.namelist()
+            if zf.testzip() is not None:
+                return None
+            
+            namelist: list[str] = zf.namelist()
         
         if not Metadata.FILENAME in namelist:
             return False
