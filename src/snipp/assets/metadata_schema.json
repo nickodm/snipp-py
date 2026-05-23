@@ -1,0 +1,48 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Snippet Metadata Schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["snippet-info", "software-info"],
+    "properties": {
+        "snippet-info": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "id"],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "git_init": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "creation_date": {
+                    "type": "integer"
+                }
+            }
+        },
+        "software-info": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["version"],
+            "properties": {
+                "version": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+
+                }
+            }
+        }
+    }
+}

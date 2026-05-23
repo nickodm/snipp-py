@@ -1,5 +1,6 @@
 from pathlib import Path
 from platformdirs import PlatformDirs
+from importlib import resources
 
 import logging
 
@@ -20,6 +21,9 @@ LOGS: Path = dirs.user_log_path
 
 lastlog_path: Path = LOGS / "last.log"
 """The path of the last log file."""
+
+ASSETS = resources.files("snipp.assets")
+"""The traversable where the program's resources are."""
 
 def init_project_dir() -> None:
     """Create all the project directories that should exist for the

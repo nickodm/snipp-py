@@ -1,5 +1,6 @@
 from pathlib import Path
 from rich.console import Console
+import os
 
 err = Console(stderr=True, style="red")
 printerr = err.print
@@ -15,8 +16,26 @@ class SnippetNotFoundError(SnippError):
 
 class InvalidSnippetError(SnippError):
     """The snippet at `path` is invalid."""
-    def __init__(self, path: Path):
-        super().__init__(f"The snippet at \"{path}\" is not valid.")
+    
+    if os.name == "nt":
+        exit_code = 13
+    else:
+        exit_code = 65
+
+    def __init__(self, path: Path | None = None):
+        if path:
+            msg = f"The snippet at \"{path}\" is not valid."
+        else:
+            msg = "Invalid snippet."
+        
+        super().__init__(msg)
+
+class InvalidMetadataError(InvalidSnippetError):
+    """The metadata of a snippet is not valid."""
+    def __init__(self):
+        super().__init__(path=None)
+        super(SnippError, self).__init__(self.args[0][:-1] \
+                                         + ": Invalid metadata.")
 
 class IDTooShortError(SnippError):
     """The provided ID is too short to recognize a snippet."""
