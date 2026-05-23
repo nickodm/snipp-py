@@ -1,7 +1,7 @@
 from pathlib import Path
 from subprocess import run
+from rich.prompt import Prompt
 import logging as _logging
-
 from ..core import *
 from ..core.parser import *
 
@@ -42,7 +42,7 @@ def main(name: str | None, id: str | None, path: Path, force: bool) -> int:
         printerr("Error: The directory is not empty.")
         return 1
    
-    with console.status(f"Deploying snippet \"{snippet.name}\"..."):
+    with console.status(f"Deploying snippet \"{snippet.name}\"...") as status:
         snippet.extract(path)
         
         if snippet.git_init:
@@ -50,6 +50,36 @@ def main(name: str | None, id: str | None, path: Path, force: bool) -> int:
                 print("Created git repository.")
             else:
                 printerr("Cannot create git repository.")
+        
+        if snippet.has_choices():
+            for choice in snippet.choices:
+                while True:
+                    prompt = choice.prompt
+                    
+                    if not choice.required:
+                        prompt += " [yellow](Enter to skip)"
+                    
+                    status.stop()
+                    
+                    res: str | None = Prompt.ask(
+                        prompt=prompt,
+                        choices=choice.opt_names(),
+                        default=choice.default,
+                        case_sensitive=False
+                    )
+                    
+                    if choice.required and res is None:
+                        printerr("Please, choose an option.")
+                    else:
+                        break
+                    
+                if res is None:
+                    print("Skippet option.")
+                    continue
+                
+                option = choice.get_by_opt(res)
+                status.start()
+                snippet.extract_choice(path, option)
     
     logger.info("Snippet deployed successfully.")
     print(":white_check_mark: Snippet deployed successfully.")

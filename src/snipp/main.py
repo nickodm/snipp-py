@@ -40,7 +40,7 @@ def init_logger() -> _logging.Logger:
     
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    logger.setLevel(_logging.INFO)
+    logger.setLevel(_logging.DEBUG)
     return logger
 
 logger = init_logger()

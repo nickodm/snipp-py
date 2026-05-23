@@ -4,7 +4,7 @@ from zipfile import ZipFile, is_zipfile
 from uuid import uuid4
 from datetime import datetime
 from tempfile import TemporaryDirectory, NamedTemporaryFile
-from typing import Generator
+from typing import Generator, overload
 import tomlkit as t
 import logging as _logging
 import json
@@ -34,6 +34,208 @@ def relatives(path: Path) -> Generator[tuple[PurePath, PurePath], None, None]:
             relative = file_path.relative_to(path)
             yield (relative, file_path)
 
+
+class ChoiceOption:
+    """A single option of a choice."""
+    
+    def __init__(self, name: str, opt_name: str, description: str = ""):
+        self.name: str = name
+        """The display name of the option."""
+        self.opt_name: str = opt_name
+        """The name that is used to choose the option."""
+        self.description: str = description
+        """The description of the option."""
+
+    @property
+    def path(self) -> PurePath:
+        """The path of the option's contents inside the zipfile."""
+        return PurePath("choices") / sanitize_filename(self.opt_name)
+
+    def read(self) -> bytes:
+        raise NotImplementedError
+        
+    def as_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "opt_name": self.opt_name,
+            "description": self.description
+        }
+    
+    @classmethod
+    def from_dict(cls, source: dict[str]) -> 'ChoiceOption':
+        self = cls.__new__(cls)
+        
+        self.name = source["name"]
+        self.opt_name = source["opt_name"]
+        self.description = source.get("description", "")
+        
+        return self
+
+
+# choices_squema: dict[str] = {
+#     "type": "array",
+#     "items": {
+#         "additionalProperties": False,
+#         "properties": {
+#             "name": {
+#                 "type": "string",
+#                 "description": "The choice's name."
+#             },
+#             "description": {
+#                 "type": "string",
+#                 "description": "The choice's description."
+#             },
+#             "required": {
+#                 "type": "boolean",
+#                 "description": ""
+#             }
+#         }
+#     }
+# }
+
+
+class Choice:
+    """A bunch of common options to choice to deploy a snippet."""
+    
+    def __init__(self, name: str, description: str = "", 
+                 required: bool = False, prompt: str = "", 
+                 options: list | None = None, default: str | None = None):
+        self.name = name
+        """The name of the choice."""
+        self.description = description
+        """The description of the choice."""
+        self.required = required
+        """Whether it is neccesary to choose an option."""
+        self.prompt = prompt
+        """The prompt to show to the user when choosing."""
+        self.options: list[ChoiceOption] = options or []
+        """The list of available options."""
+        self.default: str | None = default
+        """The default option."""
+
+    def opt_names(self) -> list[str]:
+        """The list of choice's option names."""
+        return [option.opt_name for option in self.options]
+
+    def get_by_opt(self, opt_name: str) -> ChoiceOption | None:
+        for option in self.options:
+            if option.opt_name == opt_name:
+                return option
+
+    def as_dict(self) -> dict[str]:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "prompt": self.prompt,
+            "required": self.required,
+            "default": self.default,
+            "options": [option.as_dict() for option in self.options]
+        }
+        
+    @classmethod
+    def from_dict(cls, source: dict[str]) -> 'Choice':
+        self = cls.__new__(cls)
+        
+        self.name = source["name"]
+        self.description = source.get("description", "")
+        self.required = source.get("required", False)
+        self.prompt = source.get("prompt", "")
+        self.default = source.get("default")
+        self.options = []
+        
+        for option in source["options"]:
+            self.options.append(ChoiceOption.from_dict(option))
+        
+        return self
+
+
+class Choices:
+    """All the choices of a snippet."""
+    
+    FILENAME: str = "choices.json"
+    """The name of the file containing the information about the
+    available choices"""
+    
+    DIRNAME: str = "choices"
+    """The name of the directory with the contents of each choice."""
+    
+    def __init__(self):
+        self._inner: list[Choice] = []
+    
+    @overload
+    def add(self, name: str, description: str = "", 
+        required: bool = False, options: list | None = None) -> Choice:
+        pass
+    
+    def add(self, *args, **kw) -> Choice:
+        c = Choice(*args, **kw)
+        self._inner.append(c)
+        return c
+    
+    def remove(self) -> Choice:
+        
+        raise NotImplementedError
+    
+    def as_json(self, *, indent: int = 4) -> str:
+        """Dump the choices information as a JSON.
+
+        :param int indent: The indentation to use, defaults to 4
+        :return str: The JSON.
+        """
+        data = [choice.as_dict() for choice in self]
+        return json.dumps(data, indent=indent)
+    
+    @classmethod
+    def from_json(cls, source: str | bytes) -> 'Choices':
+        """Load the choices information from a JSON.
+
+        :param str | bytes source: The JSON.
+        :return Choices: The choices information.
+        """
+        self = cls.__new__(cls)
+        self._inner = []
+        data: list[dict] = json.loads(source)
+        
+        
+        for choice in data:
+            self._inner.append(Choice.from_dict(choice))
+        
+        return self
+    
+    @classmethod
+    def extract(cls, zf: ZipFile) -> 'Choices':
+        """Extract the choices from an opened ZipFile.
+
+        :param ZipFile zf: The opened ZipFile.
+        :return Choices: The extracted choices.
+        """
+        if not cls.FILENAME in zf.namelist():
+            return Choices()
+        
+        return cls.from_json(zf.read(cls.FILENAME))
+
+    def write(self, zf: ZipFile) -> None:
+        """Write the choices to an opened ZipFile.
+
+        :param ZipFile zf: The opened ZipFile.
+        """
+        if len(self) == 0:
+            return
+        
+        zf.writestr(self.FILENAME, self.as_json())
+
+    def __iter__(self):
+        return iter(self._inner)
+    
+    def __contains__(self, item: Choice) -> bool:
+        return item in self._inner
+    
+    def __len__(self):
+        return len(self._inner)
+    
+    def __getitem__(self, key):
+        return self._inner[key]
+    
 
 class Metadata:
     """
@@ -186,9 +388,11 @@ class Snippet:
     
     def __init__(self):
         self.metadata: Metadata = None
+        self.choices: Choices = None
+        """The available choices of the snippet."""
         self.path: Path = None
         """The path where the zipped snippet is saved."""
-    
+
     @property
     def name(self) -> str:
         """The snippet's name."""
@@ -238,6 +442,7 @@ class Snippet:
         self: Snippet = cls.__new__(cls)
         
         self.metadata = Metadata(name, description, git_init)
+        self.choices = Choices()
         
         if to is not None:
             self.path = to
@@ -265,8 +470,36 @@ class Snippet:
         logger.info(f"Loading Snippet from \"{self.path}\".")
         with self.open() as zf:
             self.metadata = Metadata.extract(zf)
+            self.choices = Choices.extract(zf)
         
         return self
+    
+    def has_choices(self) -> bool:
+        """Whether the snippet has available choices."""
+        return len(self.choices) != 0
+    
+    def get_option_members(self, option: ChoiceOption) -> Generator[PurePath, None, None]:
+        """Get the contents of a choice."""
+        with self.open() as zf:
+            all = zf.namelist()
+        
+        path = option.path
+        
+        for item in all:
+            item = PurePath(item)
+            if item.is_relative_to(path):
+                yield item
+    
+    def extract_choice(self, path: Path, option: ChoiceOption) -> None:
+        """Extract the contents of an options.
+
+        :param Path path: The destiny path.
+        :param ChoiceOption option: The option.
+        """
+        with self.open() as zf:
+            for member in self.get_option_members(option):
+                destiny = path / member.relative_to(option.path)
+                zf.extract(member, destiny)
     
     def rename(self, new_name: str) -> None:
         """Change the name of the snippet.
@@ -311,6 +544,9 @@ class Snippet:
         
         buffer: list[PurePath] = []
         for path in nl:
+            if path.endswith("/"): # Skip directories
+                continue
+            
             path = PurePath(path)
             
             if not path.is_relative_to("contents"):
@@ -329,6 +565,7 @@ class Snippet:
         with ZipFile(self.path) as z:
             for file in self.namelist():
                 destiny: Path = path.joinpath(file)
+                logger.debug("Extracting \"%s\" to \"%s\"", file, destiny)
                 buffer: bytes = z.read("contents/" + file.as_posix())
                 
                 if not destiny.parent.exists():
@@ -354,6 +591,7 @@ class Snippet:
             with ZipFile(temp_file, "w") as zf:
                 if not raw:
                     self.metadata.write(zf)
+                    self.choices.write(zf)
 
                 for relative, original in relatives(origin):
                     if not raw:
