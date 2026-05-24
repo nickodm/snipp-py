@@ -49,6 +49,10 @@ def main() -> int:
     argparser = parser.build()
     args = argparser.parse_args()
     
+    if not hasattr(args, "func"):
+        argparser.print_help()
+        return 0
+    
     func = args.func
     del args.command, args.func
     
