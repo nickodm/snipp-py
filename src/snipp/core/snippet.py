@@ -1,6 +1,6 @@
 from pathlib import Path, PurePath
 from pathvalidate import sanitize_filename
-from zipfile import ZipFile, is_zipfile
+from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 from uuid import uuid4
 from datetime import datetime
 from tempfile import TemporaryDirectory, NamedTemporaryFile
@@ -117,15 +117,14 @@ class Metadata:
         return doc.as_string()
     
     def as_json(self, *, 
-                indent: int | None = 4) -> str:
+                indent: int | None = None) -> str:
         """Dump the metadata as a JSON.
         
         :param int | None indent: The indentation for the JSON,
-        defaults to 4
+        defaults to None
         
         :return str: The metadata as a JSON.
         """
-        
         data = {
             "snippet-info": {
                 "name": self.name,
@@ -139,7 +138,8 @@ class Metadata:
             }
         }
         
-        return json.dumps(data, indent=indent)
+        separators: tuple[str] = (',', ':') if indent is None else (',', ': ')
+        return json.dumps(data, indent=indent, separators=separators)
     
     @classmethod
     def from_dict(cls, d: dict) -> 'Metadata':
@@ -381,7 +381,8 @@ class Snippet:
         with NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP) as temp_file:
             temp_path: Path = Path(temp_file.name)
 
-            with ZipFile(temp_file, "w") as zf:
+            with ZipFile(temp_file, "w",
+                         compression=ZIP_DEFLATED, compresslevel=9) as zf:
                 if not raw:
                     self.metadata.write(zf)
 
