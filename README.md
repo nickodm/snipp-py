@@ -26,9 +26,23 @@ This doesn't happen with **Snipp**. Since a snippet is saved as a single file wi
 
 If you have pip and git installed, install snipp by running the following command:
 
+## Via pipx (recommended)
+
+It is highly recommended to install this program using [pipx](https://github.com/pypa/pipx). To install snipp, run the following command:
+
 ```bash
-pip install git+https://github.com/nickodm/snipp-py
+pipx install git+https://github.com/nickodm/snipp-py.git@v0.1.0 # Or whatever version you want
 ```
+
+## Via pip
+
+You can also install snipp using pip, with this command:
+
+```bash
+pip install --user git+https://github.com/nickodm/snipp-py@v0.1.0 # or whatever version you want
+```
+
+## Via My Own Installer
 
 Or, you can use my own script installer, [ndminstaller](https://github.com/nickodm/ndminstaller):
 
