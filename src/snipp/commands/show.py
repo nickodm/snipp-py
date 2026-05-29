@@ -23,7 +23,7 @@ def print_tree(snippet: Snippet) -> None:
         
         for i in range(n):
             if i % 3 == 0:
-                buff += "[dark_orange]|[/]"
+                buff += "[dark_orange]│[/]"
             else:
                 buff += " "
         
@@ -32,7 +32,7 @@ def print_tree(snippet: Snippet) -> None:
     dir_count: int = 0
     last: tuple[str] = tuple()
     for path in snippet.namelist():
-        branch = "[dark_orange]" + "|-" + "[/]"
+        branch = "[dark_orange]" + "├─" + "[/]"
         
         current: tuple[str] = path.parts
         indent = 0
