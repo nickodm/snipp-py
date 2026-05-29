@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from pathlib import Path, PurePath
 from pathvalidate import sanitize_filename
 from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 from uuid import uuid4
 from datetime import datetime
 from tempfile import TemporaryDirectory, NamedTemporaryFile
-from typing import Generator
+from typing import Generator, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 import tomlkit as t
 import logging as _logging
 import fastjsonschema
@@ -134,11 +140,11 @@ class Metadata:
         return json.dumps(data, indent=indent, separators=separators)
     
     @classmethod
-    def from_dict(cls, d: dict) -> 'Metadata':
+    def from_dict(cls, d: dict) -> Self:
         """Load a snippet's metadata from a dictionary.
 
         :param dict d: The dictionary.
-        :return Metadata: The loaded metadata.
+        :return Self: The loaded metadata.
         """
         self = cls.__new__(cls)
         
@@ -157,20 +163,20 @@ class Metadata:
         return self
     
     @classmethod
-    def from_toml(cls, source: str | bytes) -> 'Metadata':
+    def from_toml(cls, source: str | bytes) -> Self:
         """Parse the metadata information from a TOML string.
 
         :param str | bytes source: The TOML as a string or bytes.
-        :return Metadata: The loaded metadata.
+        :return Self: The loaded metadata.
         """
         return cls.from_dict(t.parse(source))
     
     @classmethod
-    def from_json(cls, source: str | bytes) -> 'Metadata':
+    def from_json(cls, source: str | bytes) -> Self:
         """Parse the metadata information from a JSON string.
 
         :param str | bytes source: The JSON as a string or bytes.
-        :return Metadata: The loaded metadata.
+        :return Self: The loaded metadata.
         :raises InvalidMetadataError: When the loaded metadata is invalid.
         """
         data: dict = json.loads(source)
@@ -183,11 +189,11 @@ class Metadata:
         return cls.from_dict(data)
     
     @classmethod
-    def extract(cls, zf: ZipFile) -> 'Metadata':
+    def extract(cls, zf: ZipFile) -> Self:
         """Extract the metadata of a snippet from an opened ZipFile.
 
         :param ZipFile zf: The opened ZipFile.
-        :return Metadata: The extracted metadata.
+        :return Self: The extracted metadata.
         """
         return cls.from_json(zf.read(cls.FILENAME))
     
@@ -244,7 +250,7 @@ class Snippet:
     
     @classmethod
     def create(cls, origin: Path, name: str = "", description: str = "",
-               git_init: bool = True, to: Path | None = None) -> 'Snippet':
+               git_init: bool = True, to: Path | None = None) -> Self:
         """Create a snippet.
 
         :param Path origin: The path of the directory where the snippet
@@ -255,7 +261,7 @@ class Snippet:
         deploying the snippet, defaults to True
         :param Path | None to: The path to save the snippet, defaults to
         the assigned path at the project directory.
-        :return Snippet: The created snippet.
+        :return Self: The created snippet.
         """
         self: Snippet = cls.__new__(cls)
         
@@ -270,11 +276,11 @@ class Snippet:
         return self
     
     @classmethod
-    def load(cls, path: Path):
+    def load(cls, path: Path) -> Self:
         """Load a built snippet from `path`.
 
         :param Path path: The path where the built snippet is.
-        :return Snippet | None: The loaded snippet.
+        :return Self: The loaded snippet.
         :raises InvalidSnippetError: When the snippet is invalid.
         """
         if not cls._is_valid(path):
