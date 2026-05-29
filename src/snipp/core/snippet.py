@@ -14,9 +14,11 @@ if TYPE_CHECKING:
 import tomlkit as t
 import logging as _logging
 import fastjsonschema
+import struct
 import json
 import shutil
 import os
+import io
 
 from snipp.assets import schemas
 from .paths import SNIPPETS, TEMP
@@ -203,6 +205,242 @@ class Metadata:
         :param ZipFile zf: The opened zipfile.
         """
         return zf.writestr(self.FILENAME, self.as_json())
+
+
+class SnippFile:
+    """
+    Builder and parser class for .snipp files.
+    """
+    
+    SUFFIX: str = ".snipp"
+    """The suffix for the snipp files."""
+    
+    HEADER_FMT: str = "<5s26sQ"
+    """The header's binary format."""
+
+    HEADER_SIZE: int = struct.calcsize(HEADER_FMT)
+    """The header's size."""
+    
+    OBFUSCATE_KEY: int = 12
+    """The key to obsfuscate the bytes."""
+    
+    def __init__(self) -> None:
+        self._metadata: Metadata | None = None
+        self._file_index: list[str] = []
+        self._contents: bytes | None = None
+        self._buffer: bytearray = bytearray(b'\x00' * self.HEADER_SIZE)
+        self._index: dict[str, dict[str, int]] = {}
+        self._built: bool = False
+        self._header: dict[str] = {}
+    
+    @property
+    def id(self) -> str | None:
+        return self._header.get("id")
+    
+    def add_metadata(self, metadata: Metadata) -> Self:
+        """Add the snippet's metadata to the file.
+
+        :param Metadata metadata: The snippet's metadata.
+        :return Self:
+        """
+        self._metadata = metadata
+        return self
+        
+    def add_file_index(self, source: list[PurePath]) -> Self:
+        """Add the file index of the snippet.
+
+        :param list[PurePath] source: The list of files in the snippet.
+        :return Self:
+        """
+        for path in source:
+            self._file_index.append(path.as_posix())
+        return self
+    
+    # def add_choices(self) -> Self: ...
+    # def add_commands(self) -> Self: ...
+    # def add_hooks(self) -> Self: ...
+
+    def add_contents(self, contents: bytes) -> Self:
+        """Add the contents of the snipp file as bytes. This is the
+        compressed file, in 7z format.
+
+        :param bytes contents: The contents of the snippet.
+        :return Self:
+        """
+        self._contents = contents
+        return self
+    
+    def _add_index(self) -> Self:
+        """Add the snippet file general index. This should be executed
+        AFTER adding the header.
+
+        :return Self:
+        """
+        s = json.dumps(self._index, separators=(',', ':')).encode()
+        self._buffer.extend(s)
+        return self
+        
+    def _add_header(self) -> Self:
+        """Add the snippet file header, at the beggining of the binary.
+        This method should be executed JUST BEFORE adding the index. 
+
+        :return Self:
+        """
+        id: bytes = self._metadata.id.encode()
+        index_pos: int = len(self._buffer)
+        data: bytes = struct.pack(self.HEADER_FMT, b"SNIPP", id, index_pos)
+        self._buffer[:self.HEADER_SIZE] = data
+        return self
+    
+    def _buffer_index(self, name: str, source: bytes) -> None:
+        """Append the source bytes to the buffer and save its position
+        and size in the index.
+
+        :param str name: The name of the part to append and index.
+        :param bytes source: The part to append in bytes.
+        """
+        self._index[name] = {
+            "pos": len(self._buffer),
+            "size": len(source)
+        }
+        self._buffer.extend(source)
+    
+    def build(self) -> Self:
+        """Build the snipp file with the added information.
+
+        :return Self:
+        """
+        metadata: bytes = self._metadata.as_json().encode("utf-8")
+        self._buffer_index("metadata", metadata)
+        
+        file_index: bytes = json.dumps(self._file_index, separators=(',', ':')) \
+            .encode("utf-8")
+        
+        self._buffer_index("file_index", file_index)
+        
+        self._buffer_index("contents", self._contents)
+        
+        self._add_header()
+        self._add_index()
+        self._built = True
+        
+        # Clear the information to save memory
+        self._metadata = None
+        self._file_index.clear()
+        self._contents = None
+        
+        return self
+        
+    def dumps(self, obfuscate: bool = True) -> bytes:
+        """Dump the snipp file as bytes.
+
+        :param bool obfuscate: Whether to obfuscate the information.
+        Defaults to True.
+        :return bytes: The snipp file.
+        """
+        data: bytes = bytes(self._buffer)
+        
+        if not obfuscate:
+            return data
+        
+        return self._obfuscate(data)
+    
+    def dump(self, fp: io.BufferedWriter, obfuscate: bool = True) -> None:
+        """Dump the snipp file to a file.
+        
+        :param bool obfuscate: Whether to obfuscate the information.
+        Defaults to True.
+        :param SupportsWrite fp: 
+        """
+        fp.write(self.dumps(obfuscate=obfuscate))
+    
+    def _read_header(self) -> None:
+        """Read and load the information in the file's header."""
+        header: bytearray = self._buffer[:self.HEADER_SIZE]
+        _, id, index_pos = struct.unpack(self.HEADER_FMT, header)
+        self._header['id'] = id.decode()
+        self._header['index_pos'] = index_pos
+    
+    def _read_index(self) -> None:
+        """Read and load the file's index."""
+        if not self._header:
+            self._read_header()
+        
+        pos: int = self._header['index_pos']
+        index: bytearray = self._buffer[pos:]      
+        self._index = json.loads(index)
+    
+    def get_part(self, name: str) -> bytes | None:
+        part = self._index.get(name)
+        if part is None:
+            return None
+        
+        pos = part.get("pos")
+        size = part.get("size")
+        
+        if pos is None or size is None:
+            return None
+        
+        if pos + size >= len(self._buffer):
+            return None
+        
+        return bytes(self._buffer[pos:pos + size])
+    
+    def list_parts(self) -> list[str]:
+        """List all the file's parts."""
+        return [k for k in self._index]
+    
+    @classmethod
+    def loads(cls, source: bytes | bytearray) -> Self:
+        """Load the information of a snippet file from bytes.
+
+        :param bytes source: The bytes of the file.
+        :return Self:
+        """
+        self: Self = cls.__new__(cls)
+        
+        self._buffer = bytearray(source)
+        self._read_header()
+        
+        return self
+    
+    @classmethod
+    def load(cls, fp: io.BufferedReader) -> Self:
+        """Load the information of a snippet file from the buffered
+        reader.
+
+        :param io.BufferedReader fp: The buffered reader.
+        :return Self:
+        """
+        fp.seek(0)
+        return cls.loads(fp.read())
+    
+    @classmethod
+    def soft_load(cls, path: Path) -> Self:
+        self: Self = cls.__new__(cls)
+        
+        with path.open("rb") as fp:
+            header: bytes = fp.read(self.HEADER_SIZE)
+        
+        magic, id, index_pos = struct.unpack(self.HEADER_FMT, header)
+        self._header = {
+            "id": id.decode(),
+            "index_pos": index_pos
+        }
+        
+        return self
+    
+    @classmethod
+    def validates(cls, source: bytes) -> bool:
+        magic, *_ = struct.unpack(cls.HEADER_FMT, source)
+        return magic == b"SNIPP"
+    
+    @classmethod
+    def validate(cls, fp: io.BufferedReader) -> bool: ...
+    
+    @classmethod
+    def _obfuscate(cls, data: bytes) -> bytes:
+        return bytes([b ^ cls.OBFUSCATE_KEY for b in data])
 
 
 class Snippet:    
