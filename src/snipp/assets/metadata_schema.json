@@ -35,12 +35,15 @@
             "properties": {
                 "version": {
                     "type": "array",
-                    "items": {
-                        "type": "integer"
-                    },
+                    "prefixItems": [
+                        {"type": "integer"},
+                        {"type": "integer"},
+                        {"type": "integer"},
+                        {"enum": ["alpha", "beta", "rc", "final"]},
+                        {"type": "integer"}
+                    ],
                     "minItems": 3,
-                    "maxItems": 3
-
+                    "maxItems": 6
                 }
             }
         }
