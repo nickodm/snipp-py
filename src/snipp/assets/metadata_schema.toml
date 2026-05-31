@@ -1,0 +1,36 @@
+"$schema" = "https://json-schema.org/draft/2020-12/schema"
+
+title = "Snippet Metadata Schema"
+type = "object"
+additionalProperties = false
+required = ["snippet-info", "software-info"]
+
+[properties.snippet-info]
+type = "object"
+additionalProperties = false
+required = ["name", "id"]
+
+[properties.snippet-info.properties]
+name = {type = "string"}
+id = {type = "string"}
+description = {type = "string"}
+git_init = {type = "boolean", default = false}
+creation_date = {type = "integer"}
+
+[properties.software-info]
+type = "object"
+additionalProperties = false
+required = ["version"]
+
+[properties.software-info.properties.version]
+type = "array"
+minItems = 3
+maxItems = 5
+required = ["Major", "Minor", "Patch", "Stage", "Stage Number"]
+prefixItems = [
+    {name = "Major", type = "integer"},
+    {name = "Minor", type = "integer"},
+    {name = "Patch", type = "integer"},
+    {name = "Stage", enum = ["alpha", "beta", "rc", "final"]},
+    {name = "Stage Number", type = "integer"}
+]

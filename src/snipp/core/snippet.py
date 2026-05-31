@@ -6,6 +6,7 @@ from datetime import datetime
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 from typing import Generator
 import tomlkit as t
+import tomli
 import logging as _logging
 import jsonschema
 import json
@@ -64,8 +65,8 @@ class Metadata:
         """
         if cls.SCHEMA is None:
             logger.info("Loading metadata JSON schema...")
-            data: bytes = ASSETS.joinpath("metadata_schema.json").read_bytes()
-            cls.SCHEMA = json.loads(data)
+            data: bytes = ASSETS.joinpath("metadata_schema.toml").read_bytes()
+            cls.SCHEMA = tomli.loads(data.decode())
             logger.info("Loaded metadata JSON schema.")
             del data
         
