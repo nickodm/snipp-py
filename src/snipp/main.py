@@ -73,9 +73,11 @@ def run() -> int:
         return e.exit_code
     except Exception as e:
         printerr(f"An unexpected error has ocurred: {e}")
-        print(f"Log file at [blue][{paths.lastlog_path}]")
-        print("Please, report the error at "
-              "https://github.com/nickodm/snipp-py/issues")
+        print(f"Log file at [blue link={paths.lastlog_path}]"
+              f"\"{paths.lastlog_path}\".")
+        print("Please, report the error at [blue link=%s]\"%s\".".replace(
+            "%s", "https://github.com/nickodm/snipp-py/issues"
+        ))
         logger.critical("Unexpected error", exc_info=True)
         return 1
     finally:

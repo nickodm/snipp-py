@@ -14,7 +14,7 @@ def create_edit(snippet: Snippet) -> int:
     
     if is_locked(snippet):
         printerr("The snippet is already being edited in "
-                 f"[blue][{temp_dir}][/].")
+                 f"[blue link={temp_dir}]\"{temp_dir}\"[/].")
         return 1
     
     logger.info(f"Editing snippet {snippet}.")
@@ -23,8 +23,9 @@ def create_edit(snippet: Snippet) -> int:
         lock(snippet)
     
     open_in_editor(temp_dir)
-    print(f"Snippet extracted to: [blue][{temp_dir}][/]. "
-          "Use \"snipp edit done\" when you finished your changes.")
+    print(f"Snippet extracted to: [blue link={temp_dir}]\"{temp_dir}\"[/]. "
+          "Use \"snipp edit done\" when you finished your changes, or "
+          "\"snipp edit abort\" if you don't modify the snippet.")
     return 0
 
 def main(name: str | None, id: str | None, subcmd: str | None) -> int:
