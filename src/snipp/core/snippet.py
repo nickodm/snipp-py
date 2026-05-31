@@ -320,10 +320,18 @@ class Snippet:
         self.path = new_path
         
         with TemporaryDirectory() as temp:
+            logger.info("Extracting %r to %r.", self, temp)
             with self.open() as zf:
                 zf.extractall(temp)
             
+            metadata_file = Path(temp) / "metadata.json"
+            
+            logger.info("Writing metadata to \"%s\".", metadata_file)
+            with metadata_file.open("w") as fp:
+                fp.write(self.metadata.as_json())
+            
             os.remove(self.path)
+            logger.info("Removed \"%s\".", self.path)
             
             self._compress(temp, self.path, raw=True)
     
