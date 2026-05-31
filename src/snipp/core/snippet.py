@@ -433,5 +433,5 @@ class Snippet:
         return True
         
     def __repr__(self) -> str:
-        return f"Snippet(name={self.name!r}, id={self.id!r}, " \
-               f"path={self.path!r})"
+        return f"<Snippet name={self.name!r} id={self.id!r} " \
+               f"path={self.path!r}>"
