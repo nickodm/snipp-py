@@ -1,4 +1,5 @@
 from pathlib import Path, PurePath
+import shutil
 import os
 import pytest
 
@@ -16,7 +17,8 @@ for i in range(1, 7):
     f"assets/asset{i}.json",
     "{'name':'asset%i', 'type':'asset'}" % i
 ])
- 
+
+name: str = "SNIPP TEST"
 
 @pytest.fixture
 def example_dir(tmp_path: Path) -> Path:
@@ -34,13 +36,15 @@ def example_dir(tmp_path: Path) -> Path:
 
 def test_init() -> None:
     assert core.DEBUG_MODE
+    core.paths.init_project_dir()
+    assert core.paths.SNIPPETS.exists()
 
 def test_create(example_dir) -> None:
     namelist = [PurePath(path) for path, _ in files]
     
     snip: Snippet = Snippet.create(
         origin=example_dir,
-        name="SNIPP TEST",
+        name=name,
         description="SNIPP MADE JUST FOR TESTING",
         git_init=True
     )
@@ -54,16 +58,10 @@ def test_create(example_dir) -> None:
     assert snip.git_init == True
     assert snip.namelist() == namelist
 
-def test_rename(example_dir) -> None:
-    name = "SNIPP TEST"
-    new_name = "SNIPP TEST RENAMED"
+def test_rename() -> None:
+    new_name = name + " RENAMED"
     
-    snip: Snippet = Snippet.create(
-        origin=example_dir,
-        name=name,
-        description="SNIPP MADE JUST FOR TESTING",
-        git_init=True
-    )
+    snip: Snippet = core.loading.find_by_name(name)
 
     snip.rename(new_name)
     path = snip.path
@@ -74,3 +72,20 @@ def test_rename(example_dir) -> None:
     snip: Snippet = Snippet.load(path)
     
     assert snip.name == new_name
+    snip.rename(name)
+    
+    assert snip.name == name
+
+def test_extract(tmp_path: Path) -> None:
+    snip: Snippet = core.loading.find_by_name("SNIPP TEST")
+    
+    snip.extract(tmp_path)
+    
+    for file, content in files:
+        path: Path = tmp_path / file
+        
+        assert path.exists()
+        assert path.read_text() == content
+
+def test_finish() -> None:
+    shutil.rmtree(core.paths.SNIPPETS)
