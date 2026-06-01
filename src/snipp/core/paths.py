@@ -3,12 +3,19 @@ from platformdirs import PlatformDirs
 from importlib import resources
 
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["SNIPPETS", "TEMP"]
 
-dirs = PlatformDirs("snipp", "NickoDM", ensure_exists=True, roaming=True)
+_name = "snipp"
+
+if os.getenv("SNIPP_DEBUG") == '1':
+    _name += "-dev"
+
+dirs = PlatformDirs(_name, "NickoDM", ensure_exists=True, roaming=True)
+del _name
 
 SNIPPETS: Path = dirs.user_data_path / "snippets"
 """The directory where the snippets are saved."""

@@ -15,6 +15,7 @@ snipp
 """
 from logging.handlers import RotatingFileHandler
 import logging as _logging
+import os
 
 from .core import *
 from .core import parser
@@ -40,7 +41,12 @@ def init_logger() -> _logging.Logger:
     
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    logger.setLevel(_logging.INFO)
+    
+    if DEBUG_MODE:
+        logger.setLevel(_logging.DEBUG)
+    else:
+        logger.setLevel(_logging.INFO)
+    
     return logger
 
 logger = init_logger()
@@ -57,6 +63,11 @@ def main() -> int:
     del args.command, args.func
     
     logger.info(f"Running snipp {__version__}.")
+    
+    if DEBUG_MODE:
+        logger.info("DEBUG MODE.")
+        print("Running in debug mode.")
+    
     init_project_dir()
     return func(**vars(args))
 
