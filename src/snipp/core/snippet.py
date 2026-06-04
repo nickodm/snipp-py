@@ -6,14 +6,14 @@ from datetime import datetime
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 from typing import Generator
 import tomlkit as t
-import tomli
 import logging as _logging
-import jsonschema
+import fastjsonschema
 import json
 import shutil
 import os
 
-from .paths import SNIPPETS, TEMP, ASSETS
+from snipp.assets import schemas
+from .paths import SNIPPETS, TEMP
 from .errors import *
 
 from snipp import __version_info__
@@ -45,9 +45,6 @@ class Metadata:
     FILENAME: str = "metadata.json"
     """The name of the metadata file inside the snippet."""
     
-    SCHEMA: dict | None = None
-    """The JSON schema used to validate the metadata info."""
-    
     def __init__(self, name: str, description: str = "", git_init: bool = True):
         self.name: str = name
         self.id: str = str(uuid4())
@@ -63,17 +60,11 @@ class Metadata:
         :param dict d: The dictionary to validate.
         :return bool: Whether the schema is valid.
         """
-        if cls.SCHEMA is None:
-            logger.info("Loading metadata JSON schema...")
-            data: bytes = ASSETS.joinpath("metadata_schema.toml").read_bytes()
-            cls.SCHEMA = tomli.loads(data.decode())
-            logger.info("Loaded metadata JSON schema.")
-            del data
         
         try:
-            jsonschema.validate(d, cls.SCHEMA)
+            schemas.metadata.validate(d)
             return True
-        except jsonschema.ValidationError:
+        except fastjsonschema.JsonSchemaException:
             logger.exception("Metadata JSON schema validation error")
             return False
     
