@@ -31,7 +31,13 @@ If you have pip and git installed, install snipp by running the following comman
 It is highly recommended to install this program using [pipx](https://github.com/pypa/pipx). To install snipp, run the following command:
 
 ```bash
-pipx install git+https://github.com/nickodm/snipp-py.git@v0.1.0 # Or whatever version you want
+pipx install git+https://github.com/nickodm/snipp-py.git
+```
+
+Also, you can specify a snipp version using `@`:
+
+```bash
+pipx install git+https://github.com/nickodm/snipp-py.git@v0.1.0-alpha.4 # Or whatever version you want
 ```
 
 ## Via pip
@@ -39,15 +45,7 @@ pipx install git+https://github.com/nickodm/snipp-py.git@v0.1.0 # Or whatever ve
 You can also install snipp using pip, with this command:
 
 ```bash
-pip install --user git+https://github.com/nickodm/snipp-py@v0.1.0 # or whatever version you want
-```
-
-## Via My Own Installer
-
-Or, you can use my own script installer, [ndminstaller](https://github.com/nickodm/ndminstaller):
-
-```bash
-ndminstall snipp-py
+pip install --user git+https://github.com/nickodm/snipp-py
 ```
 
 # ✅ Usage
