@@ -11,10 +11,11 @@ from pathlib import Path
 from argparse import ArgumentParser
 import fastjsonschema
 import tomlkit
+import json
 import sys
 
-__version__ = "v0.1.0"
-__version_info__ = (0, 1, 0)
+__version__ = "v0.1.1"
+__version_info__ = (0, 1, 1)
 
 def compile(source: Path, output: Path) -> None:
     """Compile a TOML file to a fast json schema compiled Python code.
@@ -53,6 +54,12 @@ def parser() -> ArgumentParser:
     )
     
     parser.add_argument(
+        "-j", "--json",
+        help="just print the schema as a JSON",
+        action="store_true"
+    )
+
+    parser.add_argument(
         "-o", "--output",
         help="specify the output path",
         metavar="PATH",
@@ -73,6 +80,23 @@ def main() -> int:
     file: Path = args.file
     output: Path = args.output
     force: bool = args.force
+    print_json: bool = args.json
+   
+    if print_json:
+        with file.open() as fp:
+            data: str = fp.read()
+        
+        schema = tomlkit.parse(data)
+        
+        try:
+            fastjsonschema.compile(schema)
+        except fastjsonschema.JsonSchemaDefinitionException as e:
+            print("Error in schema definition.", file=sys.stderr)
+            print(e, file=sys.stderr)
+            return 1
+        
+        print(json.dumps(schema, indent=4))
+        return 0
     
     if output is None:
         output: Path = file.with_suffix(".py")
