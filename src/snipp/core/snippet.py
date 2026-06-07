@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path, PurePath
 from pathvalidate import sanitize_filename
-from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 from uuid import uuid4
 from datetime import datetime
-from tempfile import TemporaryDirectory, NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, IO
 
 if TYPE_CHECKING:
@@ -15,13 +14,13 @@ import tomlkit as t
 import logging as _logging
 import fastjsonschema
 import struct
+import py7zr
 import json
-import shutil
 import os
 import io
 
 from snipp.assets import schemas
-from .paths import SNIPPETS, TEMP
+from .paths import SNIPPETS
 from .errors import *
 
 from snipp import __version_info__
@@ -47,16 +46,13 @@ class Metadata:
     A class representing the metadata of a snippet.
     """
     
-    FILENAME: str = "metadata.json"
-    """The name of the metadata file inside the snippet."""
-    
     def __init__(self, name: str, description: str = "", git_init: bool = True):
         self.name: str = name
         self.id: str = str(uuid4())
         self.description: str = description
         self.git_init: bool = git_init
         self.creation_date: datetime | None = datetime.now()
-        self.software_version: tuple[int, int, int] = __version_info__
+        self.software_version: tuple = __version_info__
     
     @classmethod
     def _validate_schema(cls, d: dict) -> bool:
@@ -191,20 +187,16 @@ class Metadata:
         return cls.from_dict(data)
     
     @classmethod
-    def extract(cls, zf: ZipFile) -> Self:
-        """Extract the metadata of a snippet from an opened ZipFile.
+    def extract(cls, file: SnippFile) -> Self:
+        """Extract the metadata of a snippet from an opened SnippFile.
 
-        :param ZipFile zf: The opened ZipFile.
+        :param ZipFile zf: The opened SnippFile.
         :return Self: The extracted metadata.
         """
-        return cls.from_json(zf.read(cls.FILENAME))
-    
-    def write(self, zf: ZipFile) -> None:
-        """Write the metadata of a snippet to a **opened** ZipFile.
-
-        :param ZipFile zf: The opened zipfile.
-        """
-        return zf.writestr(self.FILENAME, self.as_json())
+        data = file.read_part("metadata")
+        self = cls.from_json(data)
+        self.id = file.id
+        return self
 
 
 class SnippFile:
@@ -500,7 +492,7 @@ class Snippet:
         :return Self: The loaded snippet.
         :raises InvalidSnippetError: When the snippet is invalid.
         """
-        if not cls._is_valid(path):
+        if not path.exists():
             logger.error("Invalid snippet at \"%s\".", path)
             raise InvalidSnippetError(path)
         
@@ -508,8 +500,9 @@ class Snippet:
         self.path = path
         
         logger.info(f"Loading Snippet from \"{self.path}\".")
-        with self.open() as zf:
-            self.metadata = Metadata.extract(zf)
+        
+        with SnippFile(self.path) as file:
+            self.metadata = Metadata.extract(file)
         
         return self
     
@@ -536,42 +529,26 @@ class Snippet:
         
         with TemporaryDirectory() as temp:
             logger.info("Extracting %r to %r.", self, temp)
-            with self.open() as zf:
-                zf.extractall(temp)
-            
-            metadata_file = Path(temp) / "metadata.json"
-            
-            logger.info("Writing metadata to \"%s\".", metadata_file)
-            with metadata_file.open("w") as fp:
-                fp.write(self.metadata.as_json())
+            self.extract(temp)
             
             os.remove(self.path)
             logger.info("Removed \"%s\".", self.path)
             
-            self._compress(temp, self.path, raw=True)
+            self._compress(temp, self.path)
     
-    def open(self, mode: str = "r") -> ZipFile:
-        return ZipFile(self.path, mode)
+    def open(self, mode: str = "r") -> SnippFile:
+        return SnippFile(self.path, mode)
     
     def namelist(self) -> list[PurePath]:
         """List all the contents inside the snippet.
 
         :return list[PurePath]: The content list.
         """
-        nl: list[str] = []
-        with self.open() as zf:
-            nl = zf.namelist()
+        with self.open() as file:
+            nl: bytes = file.read_part("file_index")
         
-        buffer: list[PurePath] = []
-        for path in nl:
-            path = PurePath(path)
-            
-            if not path.is_relative_to("contents"):
-                continue
-            
-            buffer.append(path.relative_to("contents"))
-        
-        return buffer
+        nl: list[str] = json.loads(nl)
+        return [PurePath(path) for path in nl]
 
     def extract(self, path: Path) -> None:
         """Extract the snippet to `path`.
@@ -579,43 +556,42 @@ class Snippet:
         :param Path to: The path where the snippet will be extracted.
         """
         logger.info("Extracting %r to \"%s\".", self, path)
-        with ZipFile(self.path) as z:
-            for file in self.namelist():
-                destiny: Path = path.joinpath(file)
-                buffer: bytes = z.read("contents/" + file.as_posix())
-                
-                if not destiny.parent.exists():
-                    destiny.parent.mkdir(parents=True)
-                
-                with open(destiny, "wb") as fp:
-                    fp.write(buffer)
+
+        with self.open() as file:
+            buffer = io.BytesIO(file.read_part("contents"))
+        
+        with py7zr.SevenZipFile(buffer) as z7:
+            z7.extractall(path)
+        
         logger.info("Successfully extracted %r to \"%s\".", self, path)
     
-    def _compress(self, origin: Path, to: Path, *, raw: bool = False):
+    def _compress(self, origin: Path, to: Path):
         """Compress a directory with the snippet style.
 
         :param Path origin: The directory path.
         :param Path to: The path where the compressed snippet will be
         saved.
-        :param bool raw: If true, the directory will be compressed as-is,
-        without the snippet format.
         """
         logger.info("Compressing %r", self)
-        with NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP) as temp_file:
-            temp_path: Path = Path(temp_file.name)
 
-            with ZipFile(temp_file, "w",
-                         compression=ZIP_DEFLATED, compresslevel=9) as zf:
-                if not raw:
-                    self.metadata.write(zf)
-
-                for relative, original in relatives(origin):
-                    if not raw:
-                        relative = PurePath("contents") / relative
-                    
-                    zf.write(original, relative)
+        buffer = io.BytesIO()
         
-        shutil.move(temp_path, to)
+        with py7zr.SevenZipFile(buffer, "w") as z7:
+            for root, dirs, files in os.walk(origin):
+                for file in files:
+                    file_path: Path = Path(root) / file
+                    z7.write(file_path, file_path.relative_to(origin))
+            
+            namelist = z7.namelist()
+        
+        buffer.seek(0)
+        
+        with SnippFile(to, "w") as file:
+            file.add_metadata(self.metadata)
+            file.add_contents(buffer.read())
+            file.add_file_index(namelist)
+            buffer.close()
+        
         logger.info("Compressed %r", self)
 
     def assigned_path(self) -> Path:
@@ -630,30 +606,6 @@ class Snippet:
         :param Path origin: The path where the new contents are.
         """
         self._compress(origin, self.path)
-        
-    @staticmethod
-    def _is_valid(path: Path) -> bool:
-        """Whether the file at `path` is a valid snippet or not.
-
-        :param Path path: The path of the supposed snippet.
-        :return bool: Whether the file is a valid snippet.
-        """
-        if not path.exists():
-            return False
-        
-        if not is_zipfile(path):
-            return False
-        
-        with ZipFile(path) as zf:
-            if zf.testzip() is not None:
-                return None
-            
-            namelist: list[str] = zf.namelist()
-        
-        if not Metadata.FILENAME in namelist:
-            return False
-        
-        return True
         
     def __repr__(self) -> str:
         return f"<Snippet name={self.name!r} id={self.id!r} " \
