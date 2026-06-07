@@ -1,1 +1,1 @@
-from . import metadata
+from . import metadata, index

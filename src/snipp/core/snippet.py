@@ -255,7 +255,11 @@ class SnippFile:
 
         self.fp.seek(index_pos)
         index: bytes = self.fp.read()
-        self._index = json.loads(index)
+        try:
+            self._index = schemas.index.validate(json.loads(index))
+        except (fastjsonschema.JsonSchemaException, json.JSONDecodeError):
+            logger.exception("SnippFile invalid index: %r", index)
+            raise InvalidSnippetError()
 
     @classmethod
     def check_id(cls, file: Path | str | IO[bytes], id_check: str) -> bool:
@@ -373,15 +377,13 @@ class SnippFile:
         :param str name: The part's name.
         :return bytes | None: The bytes of the part, is exists.
         """
-        part = self._index.get(name)
+        part: dict[str, int] | None = self._index.get(name)
+        
         if part is None:
             return None
         
-        pos = part.get("pos")
-        size = part.get("size")
-        
-        if pos is None or size is None:
-            return None
+        pos = part["pos"]
+        size = part["size"]
         
         self.fp.seek(pos)
         return self.fp.read(size)
@@ -395,6 +397,7 @@ class SnippFile:
         self._metadata = None
         self._contents = None
         self._file_index.clear()
+        self._index.clear()
         self.fp.close()
     
     # @classmethod

@@ -1,0 +1,19 @@
+"$schema" = "https://json-schema.org/draft-07/schema"
+title = "SnippFile Meta Index"
+description = "The index of the parts of a snipp file."
+type = "object"
+required = ["metadata", "file_index", "contents"]
+
+[additionalProperties]
+type = "object"
+required = ["pos", "size"]
+
+    [additionalProperties.properties.pos]
+    type = "integer"
+    description = "The position where the part starts."
+    minimum = 0
+
+    [additionalProperties.properties.size]
+    type = "integer"
+    description = "The size of the part."
+    minimum = 0
