@@ -274,14 +274,18 @@ class SnippFile:
         else:
             fp = file
 
-        header: bytes = fp.read(cls.HEADER_SIZE)
+        with fp:
+            magic: bytes = fp.read(5)
+            
+            if magic != b"SNIPP":
+                return False
+            
+            fp.seek(0)
+            header: bytes = fp.read(cls.HEADER_SIZE)
 
         try:
-            magic, id, _ = struct.unpack(cls.HEADER_FMT, header)
+            _, id, _ = struct.unpack(cls.HEADER_FMT, header)
         except struct.error:
-            return False
-
-        if magic != b"SNIPP":
             return False
 
         return id.decode() == id_check
@@ -300,6 +304,7 @@ class SnippFile:
         :param Metadata metadata: The snippet's metadata.
         :return Self:
         """
+        self._check_mode("w")
         self._metadata = metadata
         self._id = metadata.id
         return self
@@ -310,6 +315,7 @@ class SnippFile:
         :param list[PurePath | str] source: The list of files in the snippet.
         :return Self:
         """
+        self._check_mode("w")
         for path in source:
             if isinstance(path, PurePath):
                 path: str = path.as_posix()
@@ -328,11 +334,13 @@ class SnippFile:
         :param bytes contents: The contents of the snippet.
         :return Self:
         """
+        self._check_mode("w")
         self._contents = contents
         return self
         
     def _generate_header(self, index_pos: int) -> bytes:
         """Generate the snippet file header."""
+        self._check_mode("w")
         id: bytes = self._id.encode()
         return struct.pack(self.HEADER_FMT, b"SNIPP", id, index_pos)
     
@@ -343,6 +351,7 @@ class SnippFile:
         :param str name: The name of the part to append and index.
         :param bytes source: The part to append in bytes.
         """
+        self._check_mode("w")
         pos = self.fp.tell()
         size = self.fp.write(source)
         self._index[name] = {
@@ -352,6 +361,7 @@ class SnippFile:
     
     def build(self) -> None:
         """Build the snipp file with the added information."""
+        self._check_mode("w")
         fp = self.fp
         fp.seek(self.HEADER_SIZE)
         
@@ -376,7 +386,11 @@ class SnippFile:
 
         :param str name: The part's name.
         :return bytes | None: The bytes of the part, is exists.
+        :raises ValueError: When the snipp file is closed.
         """
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
+        
         part: dict[str, int] | None = self._index.get(name)
         
         if part is None:
@@ -415,6 +429,10 @@ class SnippFile:
     
     def __repr__(self) -> str:
         return f"<SnippFile mode={self._mode}, id={self._id}>"
+
+    def _check_mode(self, mode: str) -> None:
+        if self._mode != mode:
+            raise io.UnsupportedOperation
 
 
 class Snippet:    
