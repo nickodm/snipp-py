@@ -595,23 +595,21 @@ class Snippet:
         """
         logger.info("Compressing %r", self)
 
-        buffer = io.BytesIO()
-        
-        with py7zr.SevenZipFile(buffer, "w") as z7:
-            for root, dirs, files in os.walk(origin):
-                for file in files:
-                    file_path: Path = Path(root) / file
-                    z7.write(file_path, file_path.relative_to(origin))
+        with io.BytesIO() as buffer:
+            with py7zr.SevenZipFile(buffer, "w") as z7:
+                for root, dirs, files in os.walk(origin):
+                    for file in files:
+                        file_path: Path = Path(root) / file
+                        z7.write(file_path, file_path.relative_to(origin))
+                
+                namelist = z7.namelist()
             
-            namelist = z7.namelist()
-        
-        buffer.seek(0)
-        
-        with SnippFile(to, "w") as file:
-            file.add_metadata(self.metadata)
-            file.add_contents(buffer.read())
-            file.add_file_index(namelist)
-            buffer.close()
+            buffer.seek(0)
+            
+            with SnippFile(to, "w") as file:
+                file.add_metadata(self.metadata)
+                file.add_contents(buffer.read())
+                file.add_file_index(namelist)
         
         logger.info("Compressed %r", self)
 
