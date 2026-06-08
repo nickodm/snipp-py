@@ -19,7 +19,7 @@ import json
 import os
 import io
 
-from snipp.assets import schemas
+from .. import schemas
 from .paths import SNIPPETS
 from .errors import *
 

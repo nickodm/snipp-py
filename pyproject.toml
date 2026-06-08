@@ -33,7 +33,6 @@ packages = [
     {include = "snipp", from = "src"},
 ]
 
-# Include assets
-include = [
-    "src/snipp/assets/**/*"
+exclude = [
+    "src/snipp/schemas/*.toml" # Not necessary at runtime
 ]
