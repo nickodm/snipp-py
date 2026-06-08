@@ -207,7 +207,7 @@ class SnippFile:
     SUFFIX: str = ".snipp"
     """The suffix for the snipp files."""
     
-    HEADER_FMT: str = "<5s26sQ"
+    HEADER_FMT: str = ">5s36sQ"
     """The header's binary format."""
 
     HEADER_SIZE: int = struct.calcsize(HEADER_FMT)
