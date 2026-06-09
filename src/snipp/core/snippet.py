@@ -240,19 +240,9 @@ class SnippFile:
             return
 
         # Read Header
-        header: bytes = self.fp.read(self.HEADER_SIZE)
+        self.id, index_pos = self._read_header(self.fp)
 
-        try:
-            magic, id, index_pos = struct.unpack(self.HEADER_FMT, header)
-        except struct.error:
-            self.fp.close()
-            raise InvalidSnippetError()
-
-        if magic != b"SNIPP":
-            raise InvalidSnippetError()
-
-        self._id = id.decode()
-
+        # Read index
         self.fp.seek(index_pos)
         index: bytes = self.fp.read()
         try:
@@ -260,6 +250,26 @@ class SnippFile:
         except (fastjsonschema.JsonSchemaException, json.JSONDecodeError):
             logger.exception("SnippFile invalid index: %r", index)
             raise InvalidSnippetError()
+    
+    @classmethod
+    def _read_header(cls, fp: IO[bytes]) -> tuple[str, int]:
+        """Read the header in `fp` and return it's information.
+
+        :param IO[bytes] fp: The IO containing the snipp file.
+        :raises InvalidSnippetError: When the snipp file is invalid.
+        :return tuple[str, int]: The ID and the index_pos.
+        """
+        header = fp.read(cls.HEADER_SIZE)
+        
+        try:
+            magic, id, index_pos = struct.unpack(cls.HEADER_FMT, header)
+        except (struct.error, IOError):
+            raise InvalidSnippetError()
+        
+        if magic != b"SNIPP":
+            raise InvalidSnippetError()
+        
+        return id.decode(), index_pos
 
     @classmethod
     def check_id(cls, file: Path | str | IO[bytes], id_check: str) -> bool:
@@ -274,21 +284,13 @@ class SnippFile:
         else:
             fp = file
 
-        with fp:
-            magic: bytes = fp.read(5)
-            
-            if magic != b"SNIPP":
-                return False
-            
-            fp.seek(0)
-            header: bytes = fp.read(cls.HEADER_SIZE)
-
         try:
-            _, id, _ = struct.unpack(cls.HEADER_FMT, header)
-        except struct.error:
+            with fp:
+                id, _ = cls._read_header(fp)
+        except InvalidSnippetError:
             return False
 
-        return id.decode() == id_check
+        return id == id_check
 
     @property
     def closed(self) -> bool:
