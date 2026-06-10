@@ -207,11 +207,14 @@ class SnippFile:
     SUFFIX: str = ".snipp"
     """The suffix for the snipp files."""
     
-    HEADER_FMT: str = ">5s36sQ"
+    HEADER_FMT: str = ">5sB36sQ"
     """The header's binary format."""
 
     HEADER_SIZE: int = struct.calcsize(HEADER_FMT)
     """The header's size."""
+    
+    VERSION: int = 1
+    """The latest snipp file version."""
     
     def __init__(self, file: Path | str | IO[bytes], mode: str = "r") -> None:
         """Read or write a snipp file into `file`.
@@ -227,17 +230,18 @@ class SnippFile:
         self._index: dict[str, dict[str, int]] = {}
         self._id: str | None = None
         self._mode: str = mode
-        
+        self._version: int = self.VERSION
+
         if isinstance(file, (os.PathLike, str)):
             self.fp: IO[bytes] = open(file, mode + "b")
         else:
             self.fp: IO[bytes] = file
-        
+
         if mode != "r":
             return
 
         # Read Header
-        self._id, index_pos = self._read_header(self.fp)
+        self._id, self._version, index_pos = self._read_header(self.fp)
 
         # Read index
         self.fp.seek(index_pos)
@@ -249,24 +253,24 @@ class SnippFile:
             raise InvalidSnippetError()
     
     @classmethod
-    def _read_header(cls, fp: IO[bytes]) -> tuple[str, int]:
+    def _read_header(cls, fp: IO[bytes]) -> tuple[str, int, int]:
         """Read the header in `fp` and return it's information.
 
         :param IO[bytes] fp: The IO containing the snipp file.
         :raises InvalidSnippetError: When the snipp file is invalid.
-        :return tuple[str, int]: The ID and the index_pos.
+        :return tuple[str, int, int]: The ID, the version and the index_pos.
         """
         header = fp.read(cls.HEADER_SIZE)
         
         try:
-            magic, id, index_pos = struct.unpack(cls.HEADER_FMT, header)
+            magic, ver, id, index_pos = struct.unpack(cls.HEADER_FMT, header)
         except (struct.error, IOError):
             raise InvalidSnippetError()
         
         if magic != b"SNIPP":
             raise InvalidSnippetError()
         
-        return id.decode(), index_pos
+        return id.decode(), ver, index_pos
 
     @classmethod
     def check_id(cls, file: Path | str | IO[bytes], id_check: str) -> bool:
@@ -283,7 +287,7 @@ class SnippFile:
 
         try:
             with fp:
-                id, _ = cls._read_header(fp)
+                id, *_ = cls._read_header(fp)
         except InvalidSnippetError:
             return False
 
@@ -296,7 +300,12 @@ class SnippFile:
     @property
     def id(self) -> str | None:
         return self._id
-    
+
+    @property
+    def version(self) -> int:
+        """The version of the snippet file."""
+        return self._version
+
     def add_metadata(self, metadata: Metadata) -> Self:
         """Add the snippet's metadata to the file.
 
@@ -341,8 +350,11 @@ class SnippFile:
         """Generate the snippet file header."""
         self._check_mode("w")
         id: bytes = self._id.encode()
-        return struct.pack(self.HEADER_FMT, b"SNIPP", id, index_pos)
-    
+        return struct.pack(
+            self.HEADER_FMT,
+            b"SNIPP", self._version, id, index_pos
+        )
+
     def _write_part(self, name: str, source: bytes) -> None:
         """Write the source bytes to the file and save the part in the
         index.
