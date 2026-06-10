@@ -213,9 +213,6 @@ class SnippFile:
     HEADER_SIZE: int = struct.calcsize(HEADER_FMT)
     """The header's size."""
     
-    # OBFUSCATE_KEY: int = 12
-    # """The key to obsfuscate the bytes."""
-    
     def __init__(self, file: Path | str | IO[bytes], mode: str = "r") -> None:
         """Read or write a snipp file into `file`.
 
@@ -424,10 +421,6 @@ class SnippFile:
         self._file_index.clear()
         self._index.clear()
         self.fp.close()
-    
-    # @classmethod
-    # def _obfuscate(cls, data: bytes) -> bytes:
-    #     return bytes([b ^ cls.OBFUSCATE_KEY for b in data])
 
     def __enter__(self) -> Self:
         return self
