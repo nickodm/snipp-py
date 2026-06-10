@@ -367,18 +367,27 @@ class SnippFile:
         fp = self.fp
         fp.seek(self.HEADER_SIZE)
         
-        metadata: bytes = self._metadata.as_json().encode()
-        self._write_part("metadata", metadata)
-        
+        # This is the heaviest part of the file, so it's more efficient
+        # to write it first. Otherwise, if we need to modify the file's
+        # data, like the metadata or other parts, this part must be
+        # rewritten.
+        self._write_part("contents", self._contents)
+
+        # This part is not so much heavier, but it will only change if
+        # the contents change, so they should be saved physically
+        # together.
         file_index: bytes = compact_json(self._file_index)
         self._write_part("file_index", file_index)
-        
-        self._write_part("contents", self._contents)
-        
+
+        # From here, the saved data is very light, so there's no problem
+        # if we need to re-write these parts just to modify one.
+        metadata: bytes = self._metadata.as_json().encode()
+        self._write_part("metadata", metadata)
+
         index_pos: int = fp.tell()
         index: bytes = compact_json(self._index)
         fp.write(index)
-        
+
         fp.seek(0)
         header: bytes = self._generate_header(index_pos)
         fp.write(header)
