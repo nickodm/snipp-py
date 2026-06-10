@@ -240,7 +240,7 @@ class SnippFile:
             return
 
         # Read Header
-        self.id, index_pos = self._read_header(self.fp)
+        self._id, index_pos = self._read_header(self.fp)
 
         # Read index
         self.fp.seek(index_pos)
